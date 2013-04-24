@@ -14,11 +14,10 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * External Web Service Template
+ * External Web Service TCC
  *
  * @package    localwstemplate
- * @copyright  2011 Moodle Pty Ltd (http://moodle.com)
- * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @author     Bruno Silveira
  */
 require_once($CFG->libdir . "/externallib.php");
 
@@ -26,48 +25,58 @@ class local_wstcc_external extends external_api {
 
     /**
      * Returns description of method parameters
+     *
      * @return external_function_parameters
      */
     public static function get_user_online_text_submission_parameters() {
         return new external_function_parameters(
-                array('welcomemessage' => new external_value(PARAM_TEXT, 'The welcome message. By default it is "Hello world,"', VALUE_DEFAULT, 'Hello world, '))
+            array(
+                'userid' => new external_value(PARAM_INT, 'User id', VALUE_REQUIRED),
+                'assignid' => new external_value(PARAM_INT, 'Assign id', VALUE_REQUIRED)
+            )
         );
     }
 
     /**
-     * Returns welcome message
-     * @return string welcome message
+     * Retorna texto online de determinado usuário em determinada tarefa
+     *
+     * @param $userid
+     * @param $assignid
+     * @return array()
      */
-    public static function get_user_online_text_submission($welcomemessage = 'Hello world, ') {
-        global $USER;
+    public static function get_user_online_text_submission($userid, $assignid) {
+        global $DB;
 
         //Parameter validation
         //REQUIRED
         $params = self::validate_parameters(self::get_user_online_text_submission_parameters(),
-                array('welcomemessage' => $welcomemessage));
+            array('userid' => $userid,
+                'assignid' => $assignid));
 
-        //Context validation
-        //OPTIONAL but in most web service it should present
-        $context = get_context_instance(CONTEXT_USER, $USER->id);
-        self::validate_context($context);
 
-        //Capability checking
-        //OPTIONAL but in most web service it should present
-        if (!has_capability('moodle/user:viewdetails', $context)) {
-            throw new moodle_exception('cannotviewprofile');
-        }
+        $sql = "SELECT ot.onlinetext, status
+                FROM assignsubmission_onlinetext ot
+                JOIN assign_submission assub ON (ot.submission = assub.id)
+                JOIN user u ON (assub.userid = u.id)
+                WHERE (u.id = :userid  AND ot.assignment = :assignid);";
 
-        return $params['welcomemessage'] . $USER->firstname ;;
+        $result = $DB->get_record_sql($sql, array('userid' => $params['userid'], 'assignid' => $params['assignid']));
+
+        return array('onlinetext'=>$result->onlinetext, 'status' => $result->status);
+
     }
 
     /**
      * Returns description of method result value
+     *
      * @return external_description
      */
     public static function get_user_online_text_submission_returns() {
-        return new external_value(PARAM_TEXT, 'The welcome message + user first name');
+        return new external_single_structure(
+            array('onlinetext' => new external_value(PARAM_CLEANHTML, 'texto online'),
+                  'status' => new external_value(PARAM_TEXT, 'status')
+            ), 'Texto online de determinado usuário em determinada tarefa.');
     }
-
 
 
 }
