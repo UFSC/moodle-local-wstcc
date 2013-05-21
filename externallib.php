@@ -65,7 +65,7 @@ class local_wstcc_external extends external_api {
      */
     public static function get_user_online_text_submission_returns() {
         $keys = array(
-            'onlinetext' => new external_value(PARAM_CLEANHTML, 'texto online'),
+            'onlinetext' => new external_value(PARAM_RAW, 'texto online'),
             'status' => new external_value(PARAM_TEXT, 'status')
         );
 
