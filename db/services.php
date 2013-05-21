@@ -22,20 +22,21 @@
 
 // We defined the web service functions to install.
 $functions = array(
-        'local_wstcc_get_user_online_text_submission' => array(
-                'classname'   => 'local_wstcc_external',
-                'methodname'  => 'get_user_online_text_submission',
-                'classpath'   => 'local/wstcc/externallib.php',
-                'description' => 'Retorna o texto submetio pelo usuário e o status dele.',
-                'type'        => 'read',
-        )
+    'local_wstcc_get_user_online_text_submission' => array(
+        'classname' => 'local_wstcc_external',
+        'methodname' => 'get_user_online_text_submission',
+        'classpath' => 'local/wstcc/externallib.php',
+        'description' => 'Retorna o texto submetio pelo usuário e o status dele.',
+        'type' => 'read',
+    )
 );
 
 // We define the services to install as pre-build services. A pre-build service is not editable by administrator.
 $services = array(
-        'TCC Services' => array(
-                'functions' => array ('local_wstcc_get_user_online_text_submission'),
-                'restrictedusers' => 0,
-                'enabled'=>1,
-        )
+    'TCC Services' => array(
+        'functions' => array('local_wstcc_get_user_online_text_submission'),
+        'restrictedusers' => 1,
+        'enabled' => 1,
+        'shortname' => 'wstcc_webservice'
+    )
 );

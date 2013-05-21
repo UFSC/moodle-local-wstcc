@@ -1,22 +1,8 @@
 <?php
-
-// Moodle is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// Moodle is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
-
 /**
  * External Web Service TCC
  *
- * @package    localwstemplate
+ * @package    localwstcc
  * @author     Bruno Silveira
  */
 require_once($CFG->libdir . "/externallib.php");
@@ -55,14 +41,16 @@ class local_wstcc_external extends external_api {
 
 
         $sql = "SELECT ot.onlinetext, status
-                FROM assignsubmission_onlinetext ot
-                JOIN assign_submission assub ON (ot.submission = assub.id)
-                JOIN user u ON (assub.userid = u.id)
-                WHERE (u.id = :userid  AND ot.assignment = :assignid);";
+                  FROM {assignsubmission_onlinetext} AS ot
+                  JOIN {assign_submission} AS assub
+                    ON (ot.submission = assub.id)
+                  JOIN {user} u
+                    ON (assub.userid = u.id)
+                 WHERE (u.id = :userid  AND ot.assignment = :assignid);";
 
         $result = $DB->get_record_sql($sql, array('userid' => $params['userid'], 'assignid' => $params['assignid']));
 
-        return array('onlinetext'=>$result->onlinetext, 'status' => $result->status);
+        return array('onlinetext' => $result->onlinetext, 'status' => $result->status);
 
     }
 
@@ -72,10 +60,12 @@ class local_wstcc_external extends external_api {
      * @return external_description
      */
     public static function get_user_online_text_submission_returns() {
-        return new external_single_structure(
-            array('onlinetext' => new external_value(PARAM_CLEANHTML, 'texto online'),
-                  'status' => new external_value(PARAM_TEXT, 'status')
-            ), 'Texto online de determinado usuário em determinada tarefa.');
+        $keys = array(
+            'onlinetext' => new external_value(PARAM_CLEANHTML, 'texto online'),
+            'status' => new external_value(PARAM_TEXT, 'status')
+        );
+
+        return new external_single_structure($keys, 'Texto online de determinado usuário em determinada tarefa.');
     }
 
 
