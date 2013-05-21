@@ -18,7 +18,7 @@ class local_wstcc_external extends external_api {
         return new external_function_parameters(
             array(
                 'userid' => new external_value(PARAM_INT, 'User id', VALUE_REQUIRED),
-                'assignid' => new external_value(PARAM_INT, 'Assign id', VALUE_REQUIRED)
+                'coursemoduleid' => new external_value(PARAM_INT, 'Course Module id', VALUE_REQUIRED)
             )
         );
     }
@@ -27,17 +27,17 @@ class local_wstcc_external extends external_api {
      * Retorna texto online de determinado usuário em determinada tarefa
      *
      * @param $userid
-     * @param $assignid
+     * @param $coursemoduleid
      * @return array()
      */
-    public static function get_user_online_text_submission($userid, $assignid) {
+    public static function get_user_online_text_submission($userid, $coursemoduleid) {
         global $DB;
 
         //Parameter validation
         //REQUIRED
         $params = self::validate_parameters(self::get_user_online_text_submission_parameters(),
             array('userid' => $userid,
-                'assignid' => $assignid));
+                'coursemoduleid' => $coursemoduleid));
 
 
         $sql = "SELECT ot.onlinetext, status
@@ -46,9 +46,13 @@ class local_wstcc_external extends external_api {
                     ON (ot.submission = assub.id)
                   JOIN {user} u
                     ON (assub.userid = u.id)
-                 WHERE (u.id = :userid  AND ot.assignment = :assignid);";
+                  JOIN {course_modules} cm
+                    ON (cm.instance = ot.assignment)
+                  JOIN {modules} m
+                    ON (m.id = cm.module AND m.name LIKE 'assign')
+                 WHERE (u.id = :userid  AND cm.id = :coursemoduleid);";
 
-        $result = $DB->get_record_sql($sql, array('userid' => $params['userid'], 'assignid' => $params['assignid']));
+        $result = $DB->get_record_sql($sql, array('userid' => $params['userid'], 'coursemoduleid' => $params['coursemoduleid']));
 
         return array('onlinetext' => $result->onlinetext, 'status' => $result->status);
 
