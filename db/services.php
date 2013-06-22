@@ -29,9 +29,9 @@ $functions = array(
         'description' => 'Retorna o texto submetio pelo usuário e o status dele.',
         'type' => 'read',
     ),
-    'get_username' => array(
+    'local_wstcc_get_username' => array(
         'classname' => 'local_wstcc_external',
-        'methodname' => 'local_wstcc_get_username',
+        'methodname' => 'get_username',
         'classpath' => 'local/wstcc/externallib.php',
         'description' => 'Retorna username.',
         'type' => 'read',
