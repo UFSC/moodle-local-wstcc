@@ -31,7 +31,7 @@ $functions = array(
     ),
     'get_username' => array(
         'classname' => 'local_wstcc_external',
-        'methodname' => 'get_username',
+        'methodname' => 'local_wstcc_get_username',
         'classpath' => 'local/wstcc/externallib.php',
         'description' => 'Retorna username.',
         'type' => 'read',
@@ -41,7 +41,7 @@ $functions = array(
 // We define the services to install as pre-build services. A pre-build service is not editable by administrator.
 $services = array(
     'TCC Services' => array(
-        'functions' => array('local_wstcc_get_user_online_text_submission', 'get_username'),
+        'functions' => array('local_wstcc_get_user_online_text_submission', 'local_wstcc_get_username'),
         'restrictedusers' => 1,
         'enabled' => 1,
         'shortname' => 'wstcc_webservice'

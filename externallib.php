@@ -44,7 +44,7 @@ class local_wstcc_external extends external_api {
                   FROM {assignsubmission_onlinetext} AS ot
                   JOIN {assign_submission} AS assub
                     ON (ot.submission = assub.id)
-                  JOIN {USER} u
+                  JOIN {user} u
                     ON (assub.userid = u.id)
                   JOIN {course_modules} cm
                     ON (cm.instance = ot.assignment)
