@@ -123,5 +123,32 @@ class local_wstcc_external extends external_api {
         return new external_single_structure($keys, 'Username.');
     }
 
+    /**
+     * Cria ou atualiza os grade item do usuário e curso especificado
+     *
+     * @return array
+     */
+    public static function create_grade_item() {
+        return array('test' => 'testando');
+    }
 
+    public static function create_grade_item_parameters() {
+        return new external_function_parameters(
+            array(
+                'userid' => new external_value(PARAM_INT, 'User id', VALUE_REQUIRED),
+                'courseid' => new external_value(PARAM_INT, 'Course id', VALUE_REQUIRED),
+                'itemname' => new external_value(PARAM_, 'Item Name', VALUE_REQUIRED),
+                'grademin' => new external_value(PARAM_INT, 'Grade min', VALUE_REQUIRED),
+                'grademax' => new external_value(PARAM_INT, 'Grade max', VALUE_REQUIRED)
+            )
+        );
+    }
+
+    public static function create_grade_item_returns() {
+        $keys = array(
+            'test' => new external_value(PARAM_RAW, 'test'),
+        );
+
+        return new external_single_structure($keys, 'Teste.');
+    }
 }
