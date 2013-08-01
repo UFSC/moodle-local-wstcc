@@ -28,13 +28,27 @@ $functions = array(
         'classpath' => 'local/wstcc/externallib.php',
         'description' => 'Retorna o texto submetio pelo usuário e o status dele.',
         'type' => 'read',
+    ),
+    'local_wstcc_get_username' => array(
+        'classname' => 'local_wstcc_external',
+        'methodname' => 'get_username',
+        'classpath' => 'local/wstcc/externallib.php',
+        'description' => 'Retorna username.',
+        'type' => 'read',
+    ),
+    'local_wstcc_create_grade_item' => array(
+        'classname' => 'local_wstcc_external',
+        'methodname' => 'create_grade_item',
+        'classpath' => 'local/wstcc/externallib.php',
+        'description' => 'Cria item de nota.',
+        'type' => 'read',
     )
 );
 
 // We define the services to install as pre-build services. A pre-build service is not editable by administrator.
 $services = array(
     'TCC Services' => array(
-        'functions' => array('local_wstcc_get_user_online_text_submission'),
+        'functions' => array('local_wstcc_get_user_online_text_submission', 'local_wstcc_get_username', 'local_wstcc_create_grade_item'),
         'restrictedusers' => 1,
         'enabled' => 1,
         'shortname' => 'wstcc_webservice'

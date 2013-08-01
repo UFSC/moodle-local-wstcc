@@ -72,5 +72,83 @@ class local_wstcc_external extends external_api {
         return new external_single_structure($keys, 'Texto online de determinado usuário em determinada tarefa.');
     }
 
+    /**
+     * Returns description of method parameters
+     *
+     * @return external_function_parameters
+     */
+    public static function get_username_parameters() {
+        return new external_function_parameters(
+            array(
+                'userid' => new external_value(PARAM_INT, 'User id', VALUE_REQUIRED),
+            )
+        );
+    }
 
+    /**
+     * Retorna username de determinado usuário pelo seu ID
+     *
+     * @param $userid
+     * @return array()
+     */
+    public static function get_username($userid) {
+        global $DB;
+
+        //Parameter validation
+        //REQUIRED
+        $params = self::validate_parameters(self::get_username_parameters(),
+            array('userid' => $userid));
+
+
+        $sql = "SELECT username
+                  FROM {user}
+                 WHERE (id = :userid);";
+
+        $result = $DB->get_record_sql($sql, array('userid' => $params['userid']));
+
+        return array('username' => $result->username);
+
+    }
+
+    /**
+     * Returns description of method result value
+     *
+     * @return external_description
+     */
+    public static function get_username_returns() {
+        $keys = array(
+            'username' => new external_value(PARAM_RAW, 'username')
+        );
+
+        return new external_single_structure($keys, 'Username.');
+    }
+
+    /**
+     * Cria ou atualiza os grade item do usuário e curso especificado
+     *
+     * @return array
+     */
+    public static function create_grade_item() {
+        return array('test' => 'testando');
+    }
+
+    public static function create_grade_item_parameters() {
+        return new external_function_parameters(
+            array(
+                'userid' => new external_value(PARAM_INT, 'User id', VALUE_REQUIRED),
+                'courseid' => new external_value(PARAM_INT, 'Course id', VALUE_REQUIRED),
+                'itemname' => new external_value(PARAM_, 'Item Name', VALUE_REQUIRED),
+                'grademin' => new external_value(PARAM_INT, 'Grade min', VALUE_REQUIRED),
+                'grademax' => new external_value(PARAM_INT, 'Grade max', VALUE_REQUIRED)
+            )
+        );
+    }
+
+    public static function create_grade_item_returns() {
+        $keys = array(
+            'test' => new external_value(PARAM_RAW, 'test'),
+        );
+
+        return new external_single_structure($keys, 'Teste.');
+    }
 }
