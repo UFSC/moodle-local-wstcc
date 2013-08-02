@@ -6,6 +6,7 @@
  * @author     Bruno Silveira
  */
 require_once($CFG->libdir . "/externallib.php");
+require_once($CFG->libdir . "/gradelib.php");
 
 class local_wstcc_external extends external_api {
 
