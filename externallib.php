@@ -125,11 +125,11 @@ class local_wstcc_external extends external_api {
     }
 
     /**
-     * Cria ou atualiza os grade item do usuário e curso especificado
+     * Cria ou atualiza o grade item do curso especificado
      *
      * @return array
      */
-    public static function create_grade_item($courseid, $itemname, $grademin, $grademax) {
+    public static function create_grade_item($courseid, $itemname, $grademin, $grademax, $userid, $grade) {
         $params = array(
             'itemname'=>$itemname,
             'grademin'=>$grademin,
@@ -149,7 +149,9 @@ class local_wstcc_external extends external_api {
                 'courseid' => new external_value(PARAM_INT, 'Course id', VALUE_REQUIRED),
                 'itemname' => new external_value(PARAM_RAW, 'Item Name', VALUE_REQUIRED),
                 'grademin' => new external_value(PARAM_INT, 'Grade min', VALUE_REQUIRED),
-                'grademax' => new external_value(PARAM_INT, 'Grade max', VALUE_REQUIRED)
+                'grademax' => new external_value(PARAM_INT, 'Grade max', VALUE_REQUIRED),
+                'userid' => new external_value(PARAM_INT, 'User id', VALUE_REQUIRED),
+                'grade' => new external_value(PARAM_INT, 'Grade', VALUE_REQUIRED)
             )
         );
     }
