@@ -163,12 +163,36 @@ class local_wstcc_external extends external_api {
     }
 
     /**
-     * Cria ou atualiza o grade item do curso especificado
+     * Insere a nota do usuário no item especificado
      *
      * @return array
      */
     public static function set_grade($courseid, $itemname, $grademin, $grademax, $userid, $grade) {
-        return array('result' => 'inacabado');
+        global $DB;
+        $grade_item = $DB->get_record('grade_items', array('courseid' => $courseid, 'itemname' => $itemname));
+        $grade_grade =$DB->get_record('grade_grades', array('itemid' => $grade_item->id));
+        if ($grade_grade) {
+            $g = new grade_grade($grade_grade);
+            $g->finalgrade = $grade;
+            $g->rawgrade = $grade;
+            $g->rawgrademin = $grademin;
+            $g->rawgrademax = $grademax;
+            $result = $DB->update_record('grade_grades', $g);
+        } else {
+            $g = new grade_grade();
+            $g->itemid = $grade_item->id;
+            $g->userid = $userid;
+            $g->finalgrade = $grade;
+            $g->rawgrade = $grade;
+            $g->rawgrademin = $grademin;
+            $g->rawgrademax = $grademax;
+            $result = $DB->insert_record('grade_grades', $g, true);
+        }
+        if($result) {
+            return array('result' => 'set grade successful');
+        } else {
+            return array('result' => 'set grade failed');
+        }
     }
 
     public static function set_grade_parameters() {
