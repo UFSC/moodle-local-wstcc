@@ -130,13 +130,29 @@ class local_wstcc_external extends external_api {
      * @return array
      */
     public static function create_grade_item($courseid, $itemname, $grademin, $grademax) {
-        $params = array(
-            'itemname'=>$itemname,
-            'grademin'=>$grademin,
-            'grademax'=>$grademax
-        );
-        $result = grade_update('local/wstcc', $courseid, 'local', 'wstcc', null, 0, null, $params);
-        if($result == 0) {
+        global $DB;
+        $course_category = grade_category::fetch_course_category($courseid);
+        $grade_item = $DB->get_record('grade_items', array('courseid' => $courseid, 'itemname' => $itemname));
+
+        if ($grade_item) {
+            $g = new grade_item($grade_item);
+        } else {
+            $g = new grade_item();
+        }
+
+        $g->courseid = $courseid;
+        $g->categoryid = $course_category->id;
+        $g->itemname = $itemname;
+        $g->grademin = $grademin;
+        $g->grademax = $grademax;
+        $g->itemtype = 'local';
+        $g->itemmodule = 'wstcc';
+        if ($grade_item) {
+            $result = $DB->update_record('grade_items', $g);
+        } else {
+            $result = $DB->insert_record('grade_items', $g);
+        }
+        if($result) {
             return array('result' => 'update successful');
         } else {
             return array('result' => 'error saving');
