@@ -186,7 +186,7 @@ class local_wstcc_external extends external_api {
     public static function set_grade($courseid, $itemname, $grademin, $grademax, $userid, $grade) {
         global $DB;
         $grade_item = $DB->get_record('grade_items', array('courseid' => $courseid, 'itemname' => $itemname));
-        $grade_grade =$DB->get_record('grade_grades', array('itemid' => $grade_item->id));
+        $grade_grade =$DB->get_record('grade_grades', array('itemid' => $grade_item->id, 'userid' => $userid));
         if ($grade_grade) {
             $g = new grade_grade($grade_grade);
             $g->finalgrade = $grade;
