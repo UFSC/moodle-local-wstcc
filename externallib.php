@@ -129,10 +129,10 @@ class local_wstcc_external extends external_api {
      *
      * @return array
      */
-    public static function create_grade_item($courseid, $itemname, $grademin, $grademax) {
+    public static function create_grade_item($courseid, $itemname) {
         global $DB;
         $course_category = grade_category::fetch_course_category($courseid);
-        $grade_item = $DB->get_record('grade_items', array('courseid' => $courseid, 'itemname' => $itemname));
+        $grade_item = grade_item::fetch(array('courseid' => $courseid, 'itemname' => $itemname));
 
         if ($grade_item) {
             $g = new grade_item($grade_item);
@@ -143,14 +143,12 @@ class local_wstcc_external extends external_api {
         $g->courseid = $courseid;
         $g->categoryid = $course_category->id;
         $g->itemname = $itemname;
-        $g->grademin = $grademin;
-        $g->grademax = $grademax;
         $g->itemtype = 'local';
         $g->itemmodule = 'wstcc';
         if ($grade_item) {
-            $result = $DB->update_record('grade_items', $g);
+            $result = $g->update('manual');
         } else {
-            $result = $DB->insert_record('grade_items', $g);
+            $result = $g->insert('manual');
         }
         if($result) {
             return array('result' => 'update successful');
@@ -163,9 +161,7 @@ class local_wstcc_external extends external_api {
         return new external_function_parameters(
             array(
                 'courseid' => new external_value(PARAM_INT, 'Course id', VALUE_REQUIRED),
-                'itemname' => new external_value(PARAM_RAW, 'Item Name', VALUE_REQUIRED),
-                'grademin' => new external_value(PARAM_INT, 'Grade min', VALUE_REQUIRED),
-                'grademax' => new external_value(PARAM_INT, 'Grade max', VALUE_REQUIRED)
+                'itemname' => new external_value(PARAM_RAW, 'Item Name', VALUE_REQUIRED)
             )
         );
     }
@@ -183,31 +179,32 @@ class local_wstcc_external extends external_api {
      *
      * @return array
      */
-    public static function set_grade($courseid, $itemname, $grademin, $grademax, $userid, $grade) {
+    public static function set_grade($courseid, $itemname, $userid, $grade) {
         global $DB;
-        $grade_item = $DB->get_record('grade_items', array('courseid' => $courseid, 'itemname' => $itemname));
-        $grade_grade =$DB->get_record('grade_grades', array('itemid' => $grade_item->id, 'userid' => $userid));
-        if ($grade_grade) {
-            $g = new grade_grade($grade_grade);
-            $g->finalgrade = $grade;
-            $g->rawgrade = $grade;
-            $g->rawgrademin = $grademin;
-            $g->rawgrademax = $grademax;
-            $result = $DB->update_record('grade_grades', $g);
+        $grade_item = grade_item::fetch(array('courseid' => $courseid, 'itemname' => $itemname));
+        if($grade_item) {
+            $grade_grade = grade_grade::fetch(array('itemid' => $grade_item->id));
+
+            if ($grade_grade) {
+                $g = new grade_grade($grade_grade);
+                $g->finalgrade = $grade;
+                $g->rawgrade = $grade;
+                $result = $g->update('manual');
+            } else {
+                $g = new grade_grade();
+                $g->itemid = $grade_item->id;
+                $g->userid = $userid;
+                $g->finalgrade = $grade;
+                $g->rawgrade = $grade;
+                $result = $g->insert('manual');
+            }
+            if($result) {
+                return array('result' => 'set grade successful');
+            } else {
+                return array('result' => 'set grade failed');
+            }
         } else {
-            $g = new grade_grade();
-            $g->itemid = $grade_item->id;
-            $g->userid = $userid;
-            $g->finalgrade = $grade;
-            $g->rawgrade = $grade;
-            $g->rawgrademin = $grademin;
-            $g->rawgrademax = $grademax;
-            $result = $DB->insert_record('grade_grades', $g, true);
-        }
-        if($result) {
-            return array('result' => 'set grade successful');
-        } else {
-            return array('result' => 'set grade failed');
+            return array('result' => 'set grade failed: without grade item');
         }
     }
 
@@ -216,8 +213,6 @@ class local_wstcc_external extends external_api {
             array(
                 'courseid' => new external_value(PARAM_INT, 'Course id', VALUE_REQUIRED),
                 'itemname' => new external_value(PARAM_RAW, 'Item Name', VALUE_REQUIRED),
-                'grademin' => new external_value(PARAM_INT, 'Grade min', VALUE_REQUIRED),
-                'grademax' => new external_value(PARAM_INT, 'Grade max', VALUE_REQUIRED),
                 'userid' => new external_value(PARAM_INT, 'User id', VALUE_REQUIRED),
                 'grade' => new external_value(PARAM_INT, 'Grade', VALUE_REQUIRED)
             )
