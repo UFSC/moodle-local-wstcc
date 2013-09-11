@@ -32,6 +32,7 @@ class local_wstcc_external extends external_api {
      * @return array()
      */
     public static function get_user_online_text_submission($userid, $coursemoduleid) {
+        global $DB;
 
         //Parameter validation
         //REQUIRED
