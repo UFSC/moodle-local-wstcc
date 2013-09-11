@@ -32,7 +32,6 @@ class local_wstcc_external extends external_api {
      * @return array()
      */
     public static function get_user_online_text_submission($userid, $coursemoduleid) {
-        global $DB;
 
         //Parameter validation
         //REQUIRED
@@ -130,7 +129,6 @@ class local_wstcc_external extends external_api {
      * @return array
      */
     public static function create_grade_item($courseid, $itemname) {
-        global $DB;
         $course_category = grade_category::fetch_course_category($courseid);
         $grade_item = grade_item::fetch(array('courseid' => $courseid, 'itemname' => $itemname));
 
@@ -143,7 +141,7 @@ class local_wstcc_external extends external_api {
         $g->courseid = $courseid;
         $g->categoryid = $course_category->id;
         $g->itemname = $itemname;
-        $g->itemtype = 'local';
+        $g->itemtype = 'local2';
         $g->itemmodule = 'wstcc';
         if ($grade_item) {
             $result = $g->update('manual');
@@ -161,7 +159,7 @@ class local_wstcc_external extends external_api {
         return new external_function_parameters(
             array(
                 'courseid' => new external_value(PARAM_INT, 'Course id', VALUE_REQUIRED),
-                'itemname' => new external_value(PARAM_RAW, 'Item Name', VALUE_REQUIRED)
+                'itemname' => new external_value(PARAM_RAW, 'Item Name', VALUE_REQUIRED),
             )
         );
     }
@@ -180,7 +178,6 @@ class local_wstcc_external extends external_api {
      * @return array
      */
     public static function set_grade($courseid, $itemname, $userid, $grade) {
-        global $DB;
         $grade_item = grade_item::fetch(array('courseid' => $courseid, 'itemname' => $itemname));
         if($grade_item) {
             $grade_grade = grade_grade::fetch(array('itemid' => $grade_item->id));
