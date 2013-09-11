@@ -130,6 +130,7 @@ class local_wstcc_external extends external_api {
      * @return array
      */
     public static function create_grade_item($courseid, $itemname) {
+        $action = '';
         $course_category = grade_category::fetch_course_category($courseid);
         $grade_item = grade_item::fetch(array('courseid' => $courseid, 'itemname' => $itemname));
 
@@ -142,18 +143,17 @@ class local_wstcc_external extends external_api {
         $g->courseid = $courseid;
         $g->categoryid = $course_category->id;
         $g->itemname = $itemname;
-        $g->itemtype = 'local2';
+        $g->itemtype = 'local';
         $g->itemmodule = 'wstcc';
         if ($grade_item) {
             $result = $g->update('manual');
+            $action = 'update';
         } else {
             $result = $g->insert('manual');
+            $action = 'create';
         }
-        if($result) {
-            return array('result' => 'update successful');
-        } else {
-            return array('result' => 'error saving');
-        }
+
+        return array('success' => $result, 'action' => $action);
     }
 
     public static function create_grade_item_parameters() {
@@ -167,10 +167,11 @@ class local_wstcc_external extends external_api {
 
     public static function create_grade_item_returns() {
         $keys = array(
-            'result' => new external_value(PARAM_RAW, 'result'),
+            'success' => new external_value(PARAM_BOOL, 'success'),
+            'action' => new external_value(PARAM_RAW, 'action'),
         );
 
-        return new external_single_structure($keys, 'Result.');
+        return new external_single_structure($keys, 'Success');
     }
 
     /**
@@ -179,31 +180,21 @@ class local_wstcc_external extends external_api {
      * @return array
      */
     public static function set_grade($courseid, $itemname, $userid, $grade) {
+        $error_msg = ''; $success = false;
         $grade_item = grade_item::fetch(array('courseid' => $courseid, 'itemname' => $itemname));
         if($grade_item) {
-            $grade_grade = grade_grade::fetch(array('itemid' => $grade_item->id));
+            $grade_grade = $grade_item->get_grade($userid);
+            $grade_grade->finalgrade = $grade;
+            $grade_grade->rawgrade = $grade;
+            $success = $grade_grade->update('manual');
 
-            if ($grade_grade) {
-                $g = new grade_grade($grade_grade);
-                $g->finalgrade = $grade;
-                $g->rawgrade = $grade;
-                $result = $g->update('manual');
-            } else {
-                $g = new grade_grade();
-                $g->itemid = $grade_item->id;
-                $g->userid = $userid;
-                $g->finalgrade = $grade;
-                $g->rawgrade = $grade;
-                $result = $g->insert('manual');
-            }
-            if($result) {
-                return array('result' => 'set grade successful');
-            } else {
-                return array('result' => 'set grade failed');
+            if(!$success) {
+                $error_msg = 'set grade failed' ;
             }
         } else {
-            return array('result' => 'set grade failed: without grade item');
+            $error_msg = 'set grade failed: grade item not found';
         }
+        return array('success' => $success, 'error_message' => $error_msg);
     }
 
     public static function set_grade_parameters() {
@@ -219,9 +210,10 @@ class local_wstcc_external extends external_api {
 
     public static function set_grade_returns() {
         $keys = array(
-            'result' => new external_value(PARAM_RAW, 'result'),
+            'success' => new external_value(PARAM_BOOL, 'success'),
+            'error_message' => new external_value(PARAM_RAW, 'error_message')
         );
 
-        return new external_single_structure($keys, 'Result.');
+        return new external_single_structure($keys, 'Success');
     }
 }
