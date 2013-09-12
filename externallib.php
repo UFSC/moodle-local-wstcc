@@ -129,7 +129,7 @@ class local_wstcc_external extends external_api {
      *
      * @return array
      */
-    public static function create_grade_item($courseid, $itemname) {
+    public static function create_grade_item($courseid, $itemname, $lti_id, $itemnumber) {
         $action = '';
         $course_category = grade_category::fetch_course_category($courseid);
         $grade_item = grade_item::fetch(array('courseid' => $courseid, 'itemname' => $itemname));
@@ -143,13 +143,15 @@ class local_wstcc_external extends external_api {
         $g->courseid = $courseid;
         $g->categoryid = $course_category->id;
         $g->itemname = $itemname;
-        $g->itemtype = 'local';
-        $g->itemmodule = 'wstcc';
+        $g->iteminstance = $lti_id;
+        $g->itemnumber = $itemnumber;
+        $g->itemtype = 'mod';
+        $g->itemmodule = 'lti';
         if ($grade_item) {
-            $result = $g->update('manual');
+            $result = $g->update();
             $action = 'update';
         } else {
-            $result = $g->insert('manual');
+            $result = $g->insert();
             $action = 'create';
         }
 
@@ -161,6 +163,8 @@ class local_wstcc_external extends external_api {
             array(
                 'courseid' => new external_value(PARAM_INT, 'Course id', VALUE_REQUIRED),
                 'itemname' => new external_value(PARAM_RAW, 'Item Name', VALUE_REQUIRED),
+                'lti_id' => new external_value(PARAM_RAW, 'LTI id', VALUE_REQUIRED),
+                'itemnumber' => new external_value(PARAM_RAW, 'Item number', VALUE_REQUIRED)
             )
         );
     }
