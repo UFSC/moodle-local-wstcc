@@ -129,33 +129,33 @@ class local_wstcc_external extends external_api {
      *
      * @return array
      */
-    public static function create_grade_item($courseid, $itemname, $lti_id, $itemnumber) {
-        $action = '';
+    public static function create_grade_item($courseid, $itemname, $lti_id, $itemnumber, $grademin, $grademax) {
         $course_category = grade_category::fetch_course_category($courseid);
         $grade_item = grade_item::fetch(array('courseid' => $courseid, 'itemname' => $itemname));
 
-        if ($grade_item) {
-            $g = new grade_item($grade_item);
-        } else {
-            $g = new grade_item();
-        }
-
-        $g->courseid = $courseid;
-        $g->categoryid = $course_category->id;
-        $g->itemname = $itemname;
-        $g->iteminstance = $lti_id;
-        $g->itemnumber = $itemnumber;
-        $g->itemtype = 'mod';
-        $g->itemmodule = 'lti';
-        if ($grade_item) {
-            $result = $g->update();
-            $action = 'update';
-        } else {
-            $result = $g->insert();
+        if (!$grade_item) {
+            $grade_item = new grade_item();
             $action = 'create';
+        } else {
+            $action = 'update';
         }
 
-        return array('success' => $result, 'action' => $action);
+        $grade_item->courseid = $courseid;
+        $grade_item->categoryid = $course_category->id;
+        $grade_item->itemname = $itemname;
+        $grade_item->iteminstance = $lti_id;
+        $grade_item->itemnumber = $itemnumber;
+        $grade_item->itemtype = 'mod';
+        $grade_item->itemmodule = 'lti';
+        $grade_item->grademin = $grademin;
+        $grade_item->grademax = $grademax;
+        if ($action == 'update') {
+            $result = $grade_item->update();
+        } else {
+            $result = $grade_item->insert();
+        }
+
+        return array('success' => (bool) $result, 'action' => $action);
     }
 
     public static function create_grade_item_parameters() {
@@ -164,15 +164,17 @@ class local_wstcc_external extends external_api {
                 'courseid' => new external_value(PARAM_INT, 'Course id', VALUE_REQUIRED),
                 'itemname' => new external_value(PARAM_RAW, 'Item Name', VALUE_REQUIRED),
                 'lti_id' => new external_value(PARAM_RAW, 'LTI id', VALUE_REQUIRED),
-                'itemnumber' => new external_value(PARAM_RAW, 'Item number', VALUE_REQUIRED)
+                'itemnumber' => new external_value(PARAM_RAW, 'Item number', VALUE_REQUIRED),
+                'grademin' => new external_value(PARAM_RAW, 'Grade min', VALUE_REQUIRED),
+                'grademax' => new external_value(PARAM_RAW, 'Grade max', VALUE_REQUIRED)
             )
         );
     }
 
     public static function create_grade_item_returns() {
         $keys = array(
-            'success' => new external_value(PARAM_BOOL, 'success'),
-            'action' => new external_value(PARAM_RAW, 'action'),
+            'success' => new external_value(PARAM_RAW, 'success'),
+            'action' => new external_value(PARAM_RAW, 'action')
         );
 
         return new external_single_structure($keys, 'Success');

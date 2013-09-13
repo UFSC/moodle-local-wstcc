@@ -95,13 +95,13 @@ class local_wstcc_external_testcase extends externallib_advanced_testcase {
         // Test creation
 
         // Executes webservice action
-        $returnvalue = local_wstcc_external::create_grade_item($course->id, 'Test Grade', 0, 95);
+        $returnvalue = local_wstcc_external::create_grade_item($course->id, 'Test Grade',6, 1, 0, 95);
 
         // We need to execute the return values cleaning process to simulate the web service server
         $returnvalue = external_api::clean_returnvalue(local_wstcc_external::create_grade_item_returns(), $returnvalue);
 
         // Assert create
-        $this->assertEquals(array('result' => 'update successful'), $returnvalue);
+        $this->assertEquals(array('success' => true, 'action' => 'create'), $returnvalue);
 
         $grade_item = grade_item::fetch(array('courseid' => $course->id, 'itemname' => 'Test Grade'));
         $this->assertNotEquals(false, $grade_item); // se retornar false, quer dizer que não foi encontrado
@@ -111,13 +111,13 @@ class local_wstcc_external_testcase extends externallib_advanced_testcase {
         // Test update
 
         // Executes webservice action
-        $returnvalue = local_wstcc_external::create_grade_item($course->id, 'Test Grade', 10, 85);
+        $returnvalue = local_wstcc_external::create_grade_item($course->id, 'Test Grade',6 , 1, 10, 85);
 
         // We need to execute the return values cleaning process to simulate the web service server
         $returnvalue = external_api::clean_returnvalue(local_wstcc_external::create_grade_item_returns(), $returnvalue);
 
         // Assert update
-        $this->assertEquals(array('result' => 'update successful'), $returnvalue);
+        $this->assertEquals(array('success' => true, 'action' => 'update'), $returnvalue);
 
         $grade_item = grade_item::fetch(array('courseid' => $course->id, 'itemname' => 'Test Grade'));
         $this->assertEquals($course->id, $grade_item->courseid);
