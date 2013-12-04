@@ -50,6 +50,7 @@ $services = array(
     'TCC Services' => array(
         'functions' => array('local_wstcc_get_user_online_text_submission', 'local_wstcc_get_user_text_for_generate_doc', 'local_wstcc_get_username'),
         'restrictedusers' => 1,
+        'downloadfiles' => 1,
         'enabled' => 1,
         'shortname' => 'wstcc_webservice'
     )
