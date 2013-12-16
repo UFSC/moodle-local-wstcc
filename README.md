@@ -3,6 +3,12 @@ Webservices para o sistema de TCC
 
 Webservices para utilização no sistema de TCCs.
 
-> ## Para testar:
->>1 - Instale o plugin em /local/wstcc
->>2 - Siga as instruções no arquivo /client/client.php
+Requisitos
+----------
+
+Este plugin necessita que o usuário que terá acesso a este webservice,
+tenha as seguintes capabilities marcadas como *permitir*:
+
+* moodle/course:view
+* mod/assign:grade
+* webservice/rest:use

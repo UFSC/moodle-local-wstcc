@@ -29,6 +29,13 @@ $functions = array(
         'description' => 'Retorna o texto submetio pelo usuário e o status dele.',
         'type' => 'read',
     ),
+    'local_wstcc_get_user_text_for_generate_doc' => array(
+        'classname' => 'local_wstcc_external',
+        'methodname' => 'get_user_text_for_generate_doc',
+        'classpath' => 'local/wstcc/externallib.php',
+        'description' => 'Retorna o texto submetio pelo usuário e o status dele para geração de documento.',
+        'type' => 'read',
+    ),
     'local_wstcc_get_username' => array(
         'classname' => 'local_wstcc_external',
         'methodname' => 'get_username',
@@ -55,8 +62,9 @@ $functions = array(
 // We define the services to install as pre-build services. A pre-build service is not editable by administrator.
 $services = array(
     'TCC Services' => array(
-        'functions' => array('local_wstcc_get_user_online_text_submission', 'local_wstcc_get_username', 'local_wstcc_create_grade_item', 'local_wstcc_set_grade'),
+        'functions' => array('local_wstcc_get_user_online_text_submission', 'local_wstcc_get_username', 'local_wstcc_get_user_text_for_generate_doc', 'local_wstcc_create_grade_item', 'local_wstcc_set_grade'),
         'restrictedusers' => 1,
+        'downloadfiles' => 1,
         'enabled' => 1,
         'shortname' => 'wstcc_webservice'
     )
