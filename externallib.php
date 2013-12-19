@@ -6,6 +6,7 @@
  * @author     Bruno Silveira
  */
 require_once($CFG->libdir . "/externallib.php");
+require_once($CFG->libdir . "/gradelib.php");
 require_once($CFG->dirroot.'/mod/assign/locallib.php');
 
 class local_wstcc_external extends external_api {
@@ -184,5 +185,102 @@ class local_wstcc_external extends external_api {
         return new external_single_structure($keys, 'Username.');
     }
 
+    /**
+     * Cria ou atualiza o grade item do curso especificado
+     *
+     * @return array
+     */
+    public static function create_grade_item($courseid, $itemname, $lti_id, $itemnumber, $grademin, $grademax) {
+        $course_category = grade_category::fetch_course_category($courseid);
+        $grade_item = grade_item::fetch(array('courseid' => $courseid, 'itemname' => $itemname));
 
+        if (!$grade_item) {
+            $grade_item = new grade_item();
+            $action = 'create';
+        } else {
+            $action = 'update';
+        }
+
+        $grade_item->courseid = $courseid;
+        $grade_item->categoryid = $course_category->id;
+        $grade_item->itemname = $itemname;
+        $grade_item->iteminstance = $lti_id;
+        $grade_item->itemnumber = $itemnumber;
+        $grade_item->itemtype = 'mod';
+        $grade_item->itemmodule = 'lti';
+        $grade_item->grademin = $grademin;
+        $grade_item->grademax = $grademax;
+        if ($action == 'update') {
+            $result = $grade_item->update();
+        } else {
+            $result = $grade_item->insert();
+        }
+
+        return array('success' => (bool) $result, 'action' => $action);
+    }
+
+    public static function create_grade_item_parameters() {
+        return new external_function_parameters(
+            array(
+                'courseid' => new external_value(PARAM_INT, 'Course id', VALUE_REQUIRED),
+                'itemname' => new external_value(PARAM_RAW, 'Item Name', VALUE_REQUIRED),
+                'lti_id' => new external_value(PARAM_RAW, 'LTI id', VALUE_REQUIRED),
+                'itemnumber' => new external_value(PARAM_RAW, 'Item number', VALUE_REQUIRED),
+                'grademin' => new external_value(PARAM_RAW, 'Grade min', VALUE_REQUIRED),
+                'grademax' => new external_value(PARAM_RAW, 'Grade max', VALUE_REQUIRED)
+            )
+        );
+    }
+
+    public static function create_grade_item_returns() {
+        $keys = array(
+            'success' => new external_value(PARAM_RAW, 'success'),
+            'action' => new external_value(PARAM_RAW, 'action')
+        );
+
+        return new external_single_structure($keys, 'Success');
+    }
+
+    /**
+     * Insere a nota do usuário no item especificado
+     *
+     * @return array
+     */
+    public static function set_grade($courseid, $itemname, $userid, $grade) {
+        $error_msg = ''; $success = false;
+        $grade_item = grade_item::fetch(array('courseid' => $courseid, 'itemname' => $itemname));
+        if($grade_item) {
+            $grade_grade = $grade_item->get_grade($userid);
+            $grade_grade->finalgrade = $grade;
+            $grade_grade->rawgrade = $grade;
+            $success = $grade_grade->update('manual');
+
+            if(!$success) {
+                $error_msg = 'set grade failed' ;
+            }
+        } else {
+            $error_msg = 'set grade failed: grade item not found';
+        }
+        return array('success' => $success, 'error_message' => $error_msg);
+    }
+
+    public static function set_grade_parameters() {
+        return new external_function_parameters(
+            array(
+                'courseid' => new external_value(PARAM_INT, 'Course id', VALUE_REQUIRED),
+                'itemname' => new external_value(PARAM_RAW, 'Item Name', VALUE_REQUIRED),
+                'userid' => new external_value(PARAM_INT, 'User id', VALUE_REQUIRED),
+                'grade' => new external_value(PARAM_INT, 'Grade', VALUE_REQUIRED)
+            )
+        );
+    }
+
+    public static function set_grade_returns() {
+        $keys = array(
+            'success' => new external_value(PARAM_BOOL, 'success'),
+            'error_message' => new external_value(PARAM_RAW, 'error_message')
+        );
+
+        return new external_single_structure($keys, 'Success');
+    }
 }
