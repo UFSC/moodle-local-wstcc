@@ -7,7 +7,7 @@
  */
 require_once($CFG->libdir . "/externallib.php");
 require_once($CFG->libdir . "/gradelib.php");
-require_once($CFG->dirroot.'/mod/assign/locallib.php');
+require_once($CFG->dirroot . '/mod/assign/locallib.php');
 
 class local_wstcc_external extends external_api {
 
@@ -100,22 +100,23 @@ class local_wstcc_external extends external_api {
         global $CFG;
 
         $context = context_module::instance($coursemoduleid);
-        $cm = get_coursemodule_from_id(null, $coursemoduleid, null , false, MUST_EXIST);
+        $cm = get_coursemodule_from_id(null, $coursemoduleid, null, false, MUST_EXIST);
 
         $assignsubmission = $DB->get_record('assign_submission',
-            array('assignment'=>$cm->instance, 'userid'=>$userid), 'id', MUST_EXIST);
+            array('assignment' => $cm->instance, 'userid' => $userid), 'id', MUST_EXIST);
 
         $submission_onlinetext = $DB->get_record('assignsubmission_onlinetext',
-            array('submission'=>$assignsubmission->id), 'id, onlinetext',MUST_EXIST);
+            array('submission' => $assignsubmission->id), 'id, onlinetext', MUST_EXIST);
 
-        $wsurl = $CFG->wwwroot . '/webservice';
+        $base_url = new moodle_url("/webservice/pluginfile.php/{$context->id}/assignsubmission_onlinetext/submissions_onlinetext/${$assignsubmission->id}");
 
-        $baseurl = $wsurl . '/pluginfile.php/'. $context->id .
-                '/assignsubmission_onlinetext/submissions_onlinetext/' . $assignsubmission->id ;
+        # Anonymous function que será executada pelo preg_replace_callback
+        $callback = function($matches) use ($base_url) {
+            $filename = rawurlencode($matches[2]);
+            return $base_url . $filename . '?token=@@TOKEN@@';
+        };
 
-        $replacement = $baseurl . '${2}?token=@@TOKEN@@"';
-
-        $finaltextversion = preg_replace('/(@@PLUGINFILE@@)(\/[^\.]*\.[a-zA-Z0-9]{3,})+\"/', $replacement, $submission_onlinetext->onlinetext);
+        $finaltextversion = preg_replace_callback('/(@@PLUGINFILE@@)(\/[^\.]*\.[a-zA-Z0-9]{3,})+\"/', $callback, $submission_onlinetext->onlinetext);
 
         return array('onlinetext' => $finaltextversion);
 
