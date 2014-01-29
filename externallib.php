@@ -115,7 +115,7 @@ class local_wstcc_external extends external_api {
             return $base_url . $filename . '?token=@@TOKEN@@"';
         };
 
-        $finaltextversion = preg_replace_callback('/\"(@@PLUGINFILE@@)\/([^\"]*)\"/', $callback, $submission_onlinetext->onlinetext);
+        $finaltextversion = preg_replace_callback('/\"(@@PLUGINFILE@@)\/([^\"]+)\"/', $callback, $submission_onlinetext->onlinetext);
 
         return array('onlinetext' => $finaltextversion);
 
