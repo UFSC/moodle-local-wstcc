@@ -111,7 +111,7 @@ class local_wstcc_external extends external_api {
 
         # Anonymous function que será executada pelo preg_replace_callback
         $callback = function($matches) use ($base_url) {
-            $filename = rawurldecode(rawurlencode($matches[2])); // Faz decode antes para evitar erro ao encodar caracteres que já tem encode
+            $filename = rawurlencode(rawurldecode($matches[2])); // Faz decode antes para evitar erro ao encodar caracteres que já tem encode
             return $base_url . $filename . '?token=@@TOKEN@@"';
         };
 
