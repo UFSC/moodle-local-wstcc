@@ -13,3 +13,4 @@ tenha as seguintes capabilities marcadas como *permitir*:
 * mod/assign:grade
 * mod/assign:view
 * webservice/rest:use
+* moodle/site:accessallgroups
