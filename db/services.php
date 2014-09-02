@@ -22,50 +22,64 @@
 
 // We defined the web service functions to install.
 $functions = array(
-    'local_wstcc_get_user_online_text_submission' => array(
-        'classname' => 'local_wstcc_external',
-        'methodname' => 'get_user_online_text_submission',
-        'classpath' => 'local/wstcc/externallib.php',
-        'description' => 'Retorna o texto submetio pelo usuário e o status dele.',
-        'type' => 'read',
-    ),
-    'local_wstcc_get_user_text_for_generate_doc' => array(
-        'classname' => 'local_wstcc_external',
-        'methodname' => 'get_user_text_for_generate_doc',
-        'classpath' => 'local/wstcc/externallib.php',
-        'description' => 'Retorna o texto submetio pelo usuário e o status dele para geração de documento.',
-        'type' => 'read',
-    ),
-    'local_wstcc_get_username' => array(
-        'classname' => 'local_wstcc_external',
-        'methodname' => 'get_username',
-        'classpath' => 'local/wstcc/externallib.php',
-        'description' => 'Retorna username.',
-        'type' => 'read',
-    ),
-    'local_wstcc_create_grade_item' => array(
-        'classname' => 'local_wstcc_external',
-        'methodname' => 'create_grade_item',
-        'classpath' => 'local/wstcc/externallib.php',
-        'description' => 'Cria item de nota.',
-        'type' => 'read',
-    ),
-    'local_wstcc_set_grade' => array(
-        'classname' => 'local_wstcc_external',
-        'methodname' => 'set_grade',
-        'classpath' => 'local/wstcc/externallib.php',
-        'description' => 'Seta nota.',
-        'type' => 'read',
-    )
+        'local_wstcc_get_user_online_text_submission' => array(
+                'classname' => 'local_wstcc_external',
+                'methodname' => 'get_user_online_text_submission',
+                'classpath' => 'local/wstcc/externallib.php',
+                'description' => 'Retorna o texto submetio pelo usuário e o status dele.',
+                'type' => 'read',
+        ),
+        'local_wstcc_get_user_text_for_generate_doc' => array(
+                'classname' => 'local_wstcc_external',
+                'methodname' => 'get_user_text_for_generate_doc',
+                'classpath' => 'local/wstcc/externallib.php',
+                'description' => 'Retorna o texto submetio pelo usuário e o status dele para geração de documento.',
+                'type' => 'read',
+        ),
+        'local_wstcc_get_username' => array(
+                'classname' => 'local_wstcc_external',
+                'methodname' => 'get_username',
+                'classpath' => 'local/wstcc/externallib.php',
+                'description' => 'Retorna username.',
+                'type' => 'read',
+        ),
+        'local_wstcc_create_grade_item' => array(
+                'classname' => 'local_wstcc_external',
+                'methodname' => 'create_grade_item',
+                'classpath' => 'local/wstcc/externallib.php',
+                'description' => 'Cria item de nota.',
+                'type' => 'read',
+        ),
+        'local_wstcc_set_grade' => array(
+                'classname' => 'local_wstcc_external',
+                'methodname' => 'set_grade',
+                'classpath' => 'local/wstcc/externallib.php',
+                'description' => 'Seta nota.',
+                'type' => 'read',
+        ),
+        'local_wstcc_get_users_by_field' => array(
+                'classname' => 'local_wstcc_external',
+                'methodname' => 'get_users_by_field',
+                'classpath' => 'local/wstcc/externallib.php',
+                'description' => 'Retorna os dados dos usuários informados.',
+                'type' => 'read',
+        )
 );
 
 // We define the services to install as pre-build services. A pre-build service is not editable by administrator.
 $services = array(
-    'TCC Services' => array(
-        'functions' => array('local_wstcc_get_user_online_text_submission', 'local_wstcc_get_username', 'local_wstcc_get_user_text_for_generate_doc', 'local_wstcc_create_grade_item', 'local_wstcc_set_grade'),
-        'restrictedusers' => 1,
-        'downloadfiles' => 1,
-        'enabled' => 1,
-        'shortname' => 'wstcc_webservice'
-    )
+        'TCC Services' => array(
+                'functions' => array(
+                        'local_wstcc_get_user_online_text_submission',
+                        'local_wstcc_get_username',
+                        'local_wstcc_get_user_text_for_generate_doc',
+                        'local_wstcc_create_grade_item',
+                        'local_wstcc_set_grade',
+                        'local_wstcc_get_users_by_field'
+                ),
+                'restrictedusers' => 1,
+                'downloadfiles' => 1,
+                'enabled' => 1,
+                'shortname' => 'wstcc_webservice'
+        )
 );

@@ -5,9 +5,9 @@
  * @package    localwstcc
  * @author     Bruno Silveira
  */
-require_once($CFG->libdir . "/externallib.php");
-require_once($CFG->libdir . "/gradelib.php");
-require_once($CFG->dirroot . '/mod/assign/locallib.php');
+require_once($CFG->libdir."/externallib.php");
+require_once($CFG->libdir."/gradelib.php");
+require_once($CFG->dirroot.'/mod/assign/locallib.php');
 
 class local_wstcc_external extends external_api {
 
@@ -18,10 +18,10 @@ class local_wstcc_external extends external_api {
      */
     public static function get_user_online_text_submission_parameters() {
         return new external_function_parameters(
-            array(
-                'userid' => new external_value(PARAM_INT, 'User id', VALUE_REQUIRED),
-                'coursemoduleid' => new external_value(PARAM_INT, 'Course Module id', VALUE_REQUIRED)
-            )
+                array(
+                        'userid' => new external_value(PARAM_INT, 'User id', VALUE_REQUIRED),
+                        'coursemoduleid' => new external_value(PARAM_INT, 'Course Module id', VALUE_REQUIRED)
+                )
         );
     }
 
@@ -38,8 +38,8 @@ class local_wstcc_external extends external_api {
         //Parameter validation
         //REQUIRED
         $params = self::validate_parameters(self::get_user_online_text_submission_parameters(),
-            array('userid' => $userid,
-                'coursemoduleid' => $coursemoduleid));
+                array('userid' => $userid,
+                        'coursemoduleid' => $coursemoduleid));
 
 
         $sql = "SELECT ot.onlinetext, status
@@ -67,8 +67,8 @@ class local_wstcc_external extends external_api {
      */
     public static function get_user_online_text_submission_returns() {
         $keys = array(
-            'onlinetext' => new external_value(PARAM_RAW, 'texto online'),
-            'status' => new external_value(PARAM_TEXT, 'status')
+                'onlinetext' => new external_value(PARAM_RAW, 'texto online'),
+                'status' => new external_value(PARAM_TEXT, 'status')
         );
 
         return new external_single_structure($keys, 'Texto online de determinado usuário em determinada tarefa.');
@@ -81,10 +81,10 @@ class local_wstcc_external extends external_api {
      */
     public static function get_user_text_for_generate_doc_parameters() {
         return new external_function_parameters(
-            array(
-                'userid' => new external_value(PARAM_INT, 'User id', VALUE_REQUIRED),
-                'coursemoduleid' => new external_value(PARAM_INT, 'Course Module id', VALUE_REQUIRED)
-            )
+                array(
+                        'userid' => new external_value(PARAM_INT, 'User id', VALUE_REQUIRED),
+                        'coursemoduleid' => new external_value(PARAM_INT, 'Course Module id', VALUE_REQUIRED)
+                )
         );
     }
 
@@ -102,17 +102,17 @@ class local_wstcc_external extends external_api {
         $cm = get_coursemodule_from_id(null, $coursemoduleid, null, false, MUST_EXIST);
 
         $assignsubmission = $DB->get_record('assign_submission',
-            array('assignment' => $cm->instance, 'userid' => $userid), 'id', MUST_EXIST);
+                array('assignment' => $cm->instance, 'userid' => $userid), 'id', MUST_EXIST);
 
         $submission_onlinetext = $DB->get_record('assignsubmission_onlinetext',
-            array('submission' => $assignsubmission->id), 'id, onlinetext', MUST_EXIST);
+                array('submission' => $assignsubmission->id), 'id, onlinetext', MUST_EXIST);
 
         $base_url = new moodle_url("/webservice/pluginfile.php/{$context->id}/assignsubmission_onlinetext/submissions_onlinetext/{$assignsubmission->id}/");
 
         # Anonymous function que será executada pelo preg_replace_callback
-        $callback = function($matches) use ($base_url) {
+        $callback = function ($matches) use ($base_url) {
             $filename = rawurlencode(rawurldecode($matches[2])); // Faz decode antes para evitar erro ao encodar caracteres que já tem encode
-            return $base_url . $filename . '?token=@@TOKEN@@"';
+            return $base_url.$filename.'?token=@@TOKEN@@"';
         };
 
         $finaltextversion = preg_replace_callback('/\"(@@PLUGINFILE@@)\/([^\"]+)\"/', $callback, $submission_onlinetext->onlinetext);
@@ -128,7 +128,7 @@ class local_wstcc_external extends external_api {
      */
     public static function get_user_text_for_generate_doc_returns() {
         $keys = array(
-            'onlinetext' => new external_value(PARAM_RAW, 'texto online')
+                'onlinetext' => new external_value(PARAM_RAW, 'texto online')
         );
 
         return new external_single_structure($keys, 'Texto online de determinado usuário em determinada tarefa.');
@@ -141,9 +141,9 @@ class local_wstcc_external extends external_api {
      */
     public static function get_username_parameters() {
         return new external_function_parameters(
-            array(
-                'userid' => new external_value(PARAM_INT, 'User id', VALUE_REQUIRED),
-            )
+                array(
+                        'userid' => new external_value(PARAM_INT, 'User id', VALUE_REQUIRED),
+                )
         );
     }
 
@@ -159,7 +159,7 @@ class local_wstcc_external extends external_api {
         //Parameter validation
         //REQUIRED
         $params = self::validate_parameters(self::get_username_parameters(),
-            array('userid' => $userid));
+                array('userid' => $userid));
 
 
         $sql = "SELECT username
@@ -178,11 +178,108 @@ class local_wstcc_external extends external_api {
      * @return external_description
      */
     public static function get_username_returns() {
-        $keys = array(
-            'username' => new external_value(PARAM_RAW, 'username')
-        );
+        $keys = array('username' => new external_value(PARAM_RAW, 'username'));
 
         return new external_single_structure($keys, 'Username.');
+    }
+
+    /**
+     * Returns description of method parameters
+     *
+     * @return external_function_parameters
+     * @since Moodle 2.4
+     */
+    public static function get_users_by_field_parameters() {
+        $keys = array(
+                'field' => new external_value(PARAM_ALPHA, 'the search field can be \'id\' or \'idnumber\' or \'username\' or \'email\''),
+                'values' => new external_multiple_structure(new external_value(PARAM_RAW, 'the value to match'))
+        );
+
+        return new external_function_parameters($keys);
+    }
+
+    /**
+     * Get user information for a unique field.
+     *
+     * @param string $field
+     * @param array $values
+     * @throws coding_exception
+     * @throws invalid_parameter_exception
+     * @return array An array of arrays containg user profiles.
+     * @since Moodle 2.4
+     */
+    public static function get_users_by_field($field, $values) {
+        global $CFG, $DB;
+        require_once($CFG->dirroot."/user/lib.php");
+
+        $params = self::validate_parameters(self::get_users_by_field_parameters(),
+                array('field' => $field, 'values' => $values));
+
+        // This array will keep all the users that are allowed to be searched,
+        // according to the current user's privileges.
+        $cleanedvalues = array();
+
+        switch ($field) {
+            case 'id':
+                $paramtype = PARAM_INT;
+                break;
+            case 'idnumber':
+                $paramtype = PARAM_RAW;
+                break;
+            case 'username':
+                $paramtype = PARAM_RAW;
+                break;
+            case 'email':
+                $paramtype = PARAM_EMAIL;
+                break;
+            default:
+                throw new coding_exception('invalid field parameter',
+                        'The search field \''.$field.'\' is not supported, look at the web service documentation');
+        }
+
+        // Clean the values
+        foreach ($values as $value) {
+            $cleanedvalue = clean_param($value, $paramtype);
+            if ($value != $cleanedvalue) {
+                throw new invalid_parameter_exception('The field \''.$field.
+                        '\' value is invalid: '.$value.'(cleaned value: '.$cleanedvalue.')');
+            }
+            $cleanedvalues[] = $cleanedvalue;
+        }
+
+        // Retrieve the users
+        $users = $DB->get_records_list('user', $field, $cleanedvalues, 'id');
+
+        // Finally retrieve each users information
+        $returnedusers = array();
+        foreach ($users as $user) {
+            $user_details = new stdClass();
+            $user_details->id = $user->id;
+            $user_details->name = fullname($user);
+            $user_details->email = $user->email;
+            $user_details->username = $user->username;
+
+            $returnedusers[] = $user_details;
+        }
+
+        return $returnedusers;
+    }
+
+    /**
+     * Returns description of method result value
+     *
+     * @return external_multiple_structure
+     * @since Moodle 2.4
+     */
+    public static function get_users_by_field_returns() {
+        $userfields = array(
+                'id'          => new external_value(PARAM_INT, 'ID of the user'),
+                'name'        => new external_value(PARAM_NOTAGS, 'The first name(s) of the user', VALUE_OPTIONAL),
+                'email'       => new external_value(PARAM_TEXT, 'An email address - allow email as root@localhost', VALUE_OPTIONAL),
+                'username'    => new external_value(PARAM_RAW, 'The username', VALUE_OPTIONAL)
+        );
+
+        return new external_multiple_structure(new external_single_structure($userfields));
     }
 
     /**
@@ -227,21 +324,21 @@ class local_wstcc_external extends external_api {
 
     public static function create_grade_item_parameters() {
         return new external_function_parameters(
-            array(
-                'courseid' => new external_value(PARAM_INT, 'Course id', VALUE_REQUIRED),
-                'itemname' => new external_value(PARAM_RAW, 'Item Name', VALUE_REQUIRED),
-                'lti_id' => new external_value(PARAM_RAW, 'LTI id', VALUE_REQUIRED),
-                'itemnumber' => new external_value(PARAM_RAW, 'Item number', VALUE_REQUIRED),
-                'grademin' => new external_value(PARAM_RAW, 'Grade min', VALUE_REQUIRED),
-                'grademax' => new external_value(PARAM_RAW, 'Grade max', VALUE_REQUIRED)
-            )
+                array(
+                        'courseid' => new external_value(PARAM_INT, 'Course id', VALUE_REQUIRED),
+                        'itemname' => new external_value(PARAM_RAW, 'Item Name', VALUE_REQUIRED),
+                        'lti_id' => new external_value(PARAM_RAW, 'LTI id', VALUE_REQUIRED),
+                        'itemnumber' => new external_value(PARAM_RAW, 'Item number', VALUE_REQUIRED),
+                        'grademin' => new external_value(PARAM_RAW, 'Grade min', VALUE_REQUIRED),
+                        'grademax' => new external_value(PARAM_RAW, 'Grade max', VALUE_REQUIRED)
+                )
         );
     }
 
     public static function create_grade_item_returns() {
         $keys = array(
-            'success' => new external_value(PARAM_RAW, 'success'),
-            'action' => new external_value(PARAM_RAW, 'action')
+                'success' => new external_value(PARAM_RAW, 'success'),
+                'action' => new external_value(PARAM_RAW, 'action')
         );
 
         return new external_single_structure($keys, 'Success');
@@ -257,38 +354,40 @@ class local_wstcc_external extends external_api {
      * @return array
      */
     public static function set_grade($courseid, $itemname, $userid, $grade) {
-        $error_msg = ''; $success = false;
+        $error_msg = '';
+        $success = false;
         $grade_item = grade_item::fetch(array('courseid' => $courseid, 'itemname' => $itemname));
-        if($grade_item) {
+        if ($grade_item) {
             $grade_grade = $grade_item->get_grade($userid);
             $grade_grade->finalgrade = $grade;
             $grade_grade->rawgrade = $grade;
             $success = $grade_grade->update('manual');
 
-            if(!$success) {
-                $error_msg = 'set grade failed' ;
+            if (!$success) {
+                $error_msg = 'set grade failed';
             }
         } else {
             $error_msg = 'set grade failed: grade item not found';
         }
+
         return array('success' => $success, 'error_message' => $error_msg);
     }
 
     public static function set_grade_parameters() {
         return new external_function_parameters(
-            array(
-                'courseid' => new external_value(PARAM_INT, 'Course id', VALUE_REQUIRED),
-                'itemname' => new external_value(PARAM_RAW, 'Item Name', VALUE_REQUIRED),
-                'userid' => new external_value(PARAM_INT, 'User id', VALUE_REQUIRED),
-                'grade' => new external_value(PARAM_INT, 'Grade', VALUE_REQUIRED)
-            )
+                array(
+                        'courseid' => new external_value(PARAM_INT, 'Course id', VALUE_REQUIRED),
+                        'itemname' => new external_value(PARAM_RAW, 'Item Name', VALUE_REQUIRED),
+                        'userid' => new external_value(PARAM_INT, 'User id', VALUE_REQUIRED),
+                        'grade' => new external_value(PARAM_INT, 'Grade', VALUE_REQUIRED)
+                )
         );
     }
 
     public static function set_grade_returns() {
         $keys = array(
-            'success' => new external_value(PARAM_BOOL, 'success'),
-            'error_message' => new external_value(PARAM_RAW, 'error_message')
+                'success' => new external_value(PARAM_BOOL, 'success'),
+                'error_message' => new external_value(PARAM_RAW, 'error_message')
         );
 
         return new external_single_structure($keys, 'Success');
