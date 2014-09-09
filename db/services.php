@@ -63,7 +63,15 @@ $functions = array(
                 'classpath' => 'local/wstcc/externallib.php',
                 'description' => 'Retorna os dados dos usuários informados.',
                 'type' => 'read',
+        ),
+        'local_wstcc_get_tutor_responsavel' => array(
+            'classname' => 'local_wstcc_external',
+            'methodname' => 'get_tutor_responsavel',
+            'classpath' => 'local/wstcc/externallib.php',
+            'description' => 'Retorna o tutor responsável de cada estudante.',
+            'type' => 'read',
         )
+
 );
 
 // We define the services to install as pre-build services. A pre-build service is not editable by administrator.
@@ -75,7 +83,8 @@ $services = array(
                         'local_wstcc_get_user_text_for_generate_doc',
                         'local_wstcc_create_grade_item',
                         'local_wstcc_set_grade',
-                        'local_wstcc_get_users_by_field'
+                        'local_wstcc_get_users_by_field',
+                        'local_wstcc_get_tutor_responsavel'
                 ),
                 'restrictedusers' => 1,
                 'downloadfiles' => 1,

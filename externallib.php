@@ -154,19 +154,12 @@ class local_wstcc_external extends external_api {
      * @return array()
      */
     public static function get_username($userid) {
-        global $DB;
-
         //Parameter validation
         //REQUIRED
         $params = self::validate_parameters(self::get_username_parameters(),
                 array('userid' => $userid));
 
-
-        $sql = "SELECT username
-                  FROM {user}
-                 WHERE (id = :userid);";
-
-        $result = $DB->get_record_sql($sql, array('userid' => $params['userid']));
+        $result = self::get_username_by_id($params);
 
         return array('username' => $result->username);
 
@@ -391,5 +384,53 @@ class local_wstcc_external extends external_api {
         );
 
         return new external_single_structure($keys, 'Success');
+    }
+
+    /**
+     * Returns description of method parameters
+     *
+     * @return external_function_parameters
+     * @since Moodle 2.4
+     */
+    public static function get_tutor_responsavel_parameters() {
+        $keys = array(
+            'userid' => new external_value(PARAM_INT, 'User id', VALUE_REQUIRED),
+            'courseid' => new external_value(PARAM_INT, 'Course id', VALUE_REQUIRED),
+        );
+
+        return new external_function_parameters($keys);
+    }
+
+    public static function get_tutor_responsavel($userid, $courseid) {
+        global $CFG;
+        require_once($CFG->dirroot."/local/tutores/lib.php");
+
+        $params = self::validate_parameters(self::get_tutor_responsavel_parameters(),
+            array('userid' => $userid, 'courseid' => $courseid));
+
+        $curso_ufsc = grupos_tutoria::get_curso_ufsc_id($params['courseid']);
+        $tutor = grupos_tutoria::get_tutor_responsavel_estudante($curso_ufsc, $params['userid']);
+
+        return array('id_tutor' => $tutor->id);
+    }
+
+    public static function get_tutor_responsavel_returns() {
+        $keys = array(
+            'id_tutor' => new external_value(PARAM_RAW, 'id_tutor')
+        );
+
+        return new external_single_structure($keys, 'Id tutor');
+    }
+
+    /**
+     * @param $userid
+     * @return mixed
+     */
+    protected static function get_username_by_id($userid) {
+        global $DB;
+
+        $result = $DB->get_field('user', 'username', array('id' => $userid));
+
+        return $result;
     }
 }
