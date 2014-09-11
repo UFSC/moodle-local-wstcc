@@ -70,7 +70,15 @@ $functions = array(
             'classpath' => 'local/wstcc/externallib.php',
             'description' => 'Retorna o tutor responsável de cada estudante.',
             'type' => 'read',
+        ),
+        'local_wstcc_get_students_by_course' => array(
+            'classname' => 'local_wstcc_external',
+            'methodname' => 'get_students_by_course',
+            'classpath' => 'local/wstcc/externallib.php',
+            'description' => 'Retorna a lista de estudantes de um curso específico.',
+            'type' => 'read',
         )
+
 
 );
 
@@ -84,7 +92,8 @@ $services = array(
                         'local_wstcc_create_grade_item',
                         'local_wstcc_set_grade',
                         'local_wstcc_get_users_by_field',
-                        'local_wstcc_get_tutor_responsavel'
+                        'local_wstcc_get_tutor_responsavel',
+                        'local_wstcc_get_students_by_course'
                 ),
                 'restrictedusers' => 1,
                 'downloadfiles' => 1,

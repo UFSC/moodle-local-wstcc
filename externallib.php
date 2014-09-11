@@ -423,6 +423,47 @@ class local_wstcc_external extends external_api {
     }
 
     /**
+     * Busca lista de participantes de determinado curso.
+     *
+     * @return external_function_parameters
+     */
+    public static function get_students_by_course_parameters() {
+        $keys = array(
+            'courseid' => new external_value(PARAM_INT, 'Course id', VALUE_REQUIRED),
+        );
+
+        return new external_function_parameters($keys);
+    }
+
+    public static function get_students_by_course($courseid) {
+        $params = self::validate_parameters(self::get_students_by_course_parameters(),
+            array('courseid' => $courseid));
+
+        // Retrieve the users
+        $users = self::get_list_of_students_by_course($params['courseid']);
+
+        $returnedusers = array();
+        foreach ($users as $user) {
+            $user_details = new stdClass();
+            $user_details->id = $user->id;
+
+            $returnedusers[] = $user_details;
+        }
+
+        return $returnedusers;
+    }
+
+    public static function get_students_by_course_returns() {
+        $userfields = array(
+            'id' => new external_value(PARAM_INT, 'ID of the student'),
+        );
+
+        return new external_multiple_structure(new external_single_structure($userfields));
+    }
+
+    /**
+     * Função auxiliar que retorna o 'username' baseado no 'userid'
+     *
      * @param $userid
      * @return mixed
      */
@@ -432,5 +473,37 @@ class local_wstcc_external extends external_api {
         $result = $DB->get_field('user', 'username', array('id' => $userid));
 
         return $result;
+    }
+
+    /**
+     * Função auxiliar que retorna a lista de participantes com papel de estudante ('roleid = 5')
+     * de um determinado curso
+     *
+     * @param $courseid
+     * @return array
+     */
+
+    protected static function get_list_of_students_by_course($courseid) {
+        global $DB;
+
+        $sql = 'SELECT DISTINCT u.id
+                  FROM {user} u
+                  JOIN {role_assignments} ra
+                    ON (u.id = ra.userid)
+                  JOIN {role} r
+                    ON (r.id = ra.roleid)
+                  JOIN {context} ctx
+                    ON (ctx.id = ra.contextid AND ctx.contextlevel = :contextlevel)
+                  JOIN {course} c
+                    ON (c.id = ctx.instanceid)
+                 WHERE (ra.userid = u.id
+                   AND ra.contextid = ctx.id
+                   AND ctx.instanceid = c.id
+                   AND roleid = 5
+                   AND c.id = :courseid)
+              ORDER BY u.firstname
+        ';
+
+        return $DB->get_records_sql($sql, array('courseid' => $courseid, 'contextlevel' => CONTEXT_COURSE));
     }
 }
