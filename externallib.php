@@ -487,20 +487,16 @@ class local_wstcc_external extends external_api {
         global $DB;
 
         $sql = 'SELECT DISTINCT u.id
-                  FROM {user} u
-                  JOIN {role_assignments} ra
+                  FROM {role_assignments} ra
+                  JOIN {user} u
                     ON (u.id = ra.userid)
-                  JOIN {role} r
-                    ON (r.id = ra.roleid)
                   JOIN {context} ctx
-                    ON (ctx.id = ra.contextid AND ctx.contextlevel = :contextlevel)
+                    ON (ctx.id = ra.contextid)
                   JOIN {course} c
                     ON (c.id = ctx.instanceid)
-                 WHERE (ra.userid = u.id
-                   AND ra.contextid = ctx.id
-                   AND ctx.instanceid = c.id
-                   AND roleid = 5
-                   AND c.id = :courseid)
+                  JOIN {role} r
+                    ON (r.id = ra.roleid)
+                 WHERE (roleid = 5 AND c.id = :courseid AND ctx.contextlevel = :contextlevel)
               ORDER BY u.firstname
         ';
 
