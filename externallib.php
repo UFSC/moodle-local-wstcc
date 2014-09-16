@@ -9,6 +9,8 @@ require_once($CFG->libdir."/externallib.php");
 require_once($CFG->libdir."/gradelib.php");
 require_once($CFG->dirroot.'/mod/assign/locallib.php');
 
+use local_ufsc\ufsc;
+
 class local_wstcc_external extends external_api {
 
     /**
@@ -408,8 +410,8 @@ class local_wstcc_external extends external_api {
         $params = self::validate_parameters(self::get_tutor_responsavel_parameters(),
             array('userid' => $userid, 'courseid' => $courseid));
 
-        $curso_ufsc = grupos_tutoria::get_curso_ufsc_id($params['courseid']);
-        $tutor = grupos_tutoria::get_tutor_responsavel_estudante($curso_ufsc, $params['userid']);
+        $categoria_turma = UFSC::get_categoria_turma_ufsc($params['courseid']);
+        $tutor = grupos_tutoria::get_tutor_responsavel_estudante($categoria_turma, $params['userid']);
 
         return array('id_tutor' => $tutor->id);
     }
@@ -459,6 +461,42 @@ class local_wstcc_external extends external_api {
         );
 
         return new external_multiple_structure(new external_single_structure($userfields));
+    }
+
+    /**
+     * Returns description of method parameters
+     *
+     * @return external_function_parameters
+     * @since Moodle 2.4
+     */
+    public static function get_orientador_responsavel_parameters() {
+        $keys = array(
+            'userid' => new external_value(PARAM_INT, 'User id', VALUE_REQUIRED),
+            'courseid' => new external_value(PARAM_INT, 'Course id', VALUE_REQUIRED),
+        );
+
+        return new external_function_parameters($keys);
+    }
+
+    public static function get_orientador_responsavel($userid, $courseid) {
+        global $CFG;
+        require_once($CFG->dirroot."/local/tutores/lib.php");
+
+        $params = self::validate_parameters(self::get_orientador_responsavel_parameters(),
+            array('userid' => $userid, 'courseid' => $courseid));
+
+        $categoria_turma = ufsc::get_categoria_turma_ufsc($params['courseid']);
+        $orientador = grupo_orientacao::get_orientador_responsavel_estudante($categoria_turma, $params['userid']);
+
+        return array('id_orientador' => $orientador->id);
+    }
+
+    public static function get_orientador_responsavel_returns() {
+        $keys = array(
+            'id_orientador' => new external_value(PARAM_INT, 'id_orientador')
+        );
+
+        return new external_single_structure($keys, 'Id Orientador');
     }
 
     /**
