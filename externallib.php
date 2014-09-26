@@ -8,6 +8,8 @@
 require_once($CFG->libdir."/externallib.php");
 require_once($CFG->libdir."/gradelib.php");
 require_once($CFG->dirroot.'/mod/assign/locallib.php');
+require_once($CFG->dirroot."/local/tutores/lib.php");
+require_once($CFG->dirroot."/user/lib.php");
 
 use local_ufsc\ufsc;
 
@@ -161,7 +163,7 @@ class local_wstcc_external extends external_api {
         $params = self::validate_parameters(self::get_username_parameters(),
                 array('userid' => $userid));
 
-        $result = self::get_username_by_id($params);
+        $result = $DB->get_field('user', 'username', array('id' => $userid));
 
         return array('username' => $result->username);
 
@@ -204,8 +206,7 @@ class local_wstcc_external extends external_api {
      * @since Moodle 2.4
      */
     public static function get_users_by_field($field, $values) {
-        global $CFG, $DB;
-        require_once($CFG->dirroot."/user/lib.php");
+        global $DB;
 
         $params = self::validate_parameters(self::get_users_by_field_parameters(),
                 array('field' => $field, 'values' => $values));
@@ -268,10 +269,10 @@ class local_wstcc_external extends external_api {
      */
     public static function get_users_by_field_returns() {
         $userfields = array(
-                'id'          => new external_value(PARAM_INT, 'ID of the user'),
-                'name'        => new external_value(PARAM_NOTAGS, 'The first name(s) of the user', VALUE_OPTIONAL),
-                'email'       => new external_value(PARAM_TEXT, 'An email address - allow email as root@localhost', VALUE_OPTIONAL),
-                'username'    => new external_value(PARAM_RAW, 'The username', VALUE_OPTIONAL)
+                'id' => new external_value(PARAM_INT, 'ID of the user'),
+                'name' => new external_value(PARAM_NOTAGS, 'The first name(s) of the user', VALUE_OPTIONAL),
+                'email' => new external_value(PARAM_TEXT, 'An email address - allow email as root@localhost', VALUE_OPTIONAL),
+                'username' => new external_value(PARAM_RAW, 'The username', VALUE_OPTIONAL)
         );
 
         return new external_multiple_structure(new external_single_structure($userfields));
@@ -396,8 +397,8 @@ class local_wstcc_external extends external_api {
      */
     public static function get_tutor_responsavel_parameters() {
         $keys = array(
-            'userid' => new external_value(PARAM_INT, 'User id', VALUE_REQUIRED),
-            'courseid' => new external_value(PARAM_INT, 'Course id', VALUE_REQUIRED),
+                'userid' => new external_value(PARAM_INT, 'User id', VALUE_REQUIRED),
+                'courseid' => new external_value(PARAM_INT, 'Course id', VALUE_REQUIRED),
         );
 
         return new external_function_parameters($keys);
@@ -405,10 +406,9 @@ class local_wstcc_external extends external_api {
 
     public static function get_tutor_responsavel($userid, $courseid) {
         global $CFG;
-        require_once($CFG->dirroot."/local/tutores/lib.php");
 
         $params = self::validate_parameters(self::get_tutor_responsavel_parameters(),
-            array('userid' => $userid, 'courseid' => $courseid));
+                array('userid' => $userid, 'courseid' => $courseid));
 
         $categoria_turma = UFSC::get_categoria_turma_ufsc($params['courseid']);
         $tutor = grupos_tutoria::get_tutor_responsavel_estudante($categoria_turma, $params['userid']);
@@ -418,7 +418,7 @@ class local_wstcc_external extends external_api {
 
     public static function get_tutor_responsavel_returns() {
         $keys = array(
-            'id_tutor' => new external_value(PARAM_RAW, 'id_tutor')
+                'id_tutor' => new external_value(PARAM_RAW, 'id_tutor')
         );
 
         return new external_single_structure($keys, 'Id tutor');
@@ -431,15 +431,14 @@ class local_wstcc_external extends external_api {
      */
     public static function get_students_by_course_parameters() {
         $keys = array(
-            'courseid' => new external_value(PARAM_INT, 'Course id', VALUE_REQUIRED),
+                'courseid' => new external_value(PARAM_INT, 'Course id', VALUE_REQUIRED),
         );
 
         return new external_function_parameters($keys);
     }
 
     public static function get_students_by_course($courseid) {
-        $params = self::validate_parameters(self::get_students_by_course_parameters(),
-            array('courseid' => $courseid));
+        $params = self::validate_parameters(self::get_students_by_course_parameters(), array('courseid' => $courseid));
 
         // Retrieve the users
         $users = self::get_list_of_students_by_course($params['courseid']);
@@ -456,9 +455,7 @@ class local_wstcc_external extends external_api {
     }
 
     public static function get_students_by_course_returns() {
-        $userfields = array(
-            'id' => new external_value(PARAM_INT, 'ID of the student'),
-        );
+        $userfields = array('id' => new external_value(PARAM_INT, 'ID of the student'));
 
         return new external_multiple_structure(new external_single_structure($userfields));
     }
@@ -471,8 +468,8 @@ class local_wstcc_external extends external_api {
      */
     public static function get_orientador_responsavel_parameters() {
         $keys = array(
-            'userid' => new external_value(PARAM_INT, 'User id', VALUE_REQUIRED),
-            'courseid' => new external_value(PARAM_INT, 'Course id', VALUE_REQUIRED),
+                'userid' => new external_value(PARAM_INT, 'User id', VALUE_REQUIRED),
+                'courseid' => new external_value(PARAM_INT, 'Course id', VALUE_REQUIRED),
         );
 
         return new external_function_parameters($keys);
@@ -480,10 +477,9 @@ class local_wstcc_external extends external_api {
 
     public static function get_orientador_responsavel($userid, $courseid) {
         global $CFG;
-        require_once($CFG->dirroot."/local/tutores/lib.php");
 
         $params = self::validate_parameters(self::get_orientador_responsavel_parameters(),
-            array('userid' => $userid, 'courseid' => $courseid));
+                array('userid' => $userid, 'courseid' => $courseid));
 
         $categoria_turma = ufsc::get_categoria_turma_ufsc($params['courseid']);
         $orientador = grupo_orientacao::get_orientador_responsavel_estudante($categoria_turma, $params['userid']);
@@ -493,24 +489,10 @@ class local_wstcc_external extends external_api {
 
     public static function get_orientador_responsavel_returns() {
         $keys = array(
-            'id_orientador' => new external_value(PARAM_INT, 'id_orientador')
+                'id_orientador' => new external_value(PARAM_INT, 'id_orientador')
         );
 
         return new external_single_structure($keys, 'Id Orientador');
-    }
-
-    /**
-     * Função auxiliar que retorna o 'username' baseado no 'userid'
-     *
-     * @param $userid
-     * @return mixed
-     */
-    protected static function get_username_by_id($userid) {
-        global $DB;
-
-        $result = $DB->get_field('user', 'username', array('id' => $userid));
-
-        return $result;
     }
 
     /**
