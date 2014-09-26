@@ -63,6 +63,27 @@ $functions = array(
                 'classpath' => 'local/wstcc/externallib.php',
                 'description' => 'Retorna os dados dos usuários informados.',
                 'type' => 'read',
+        ),
+        'local_wstcc_get_tutor_responsavel' => array(
+                'classname' => 'local_wstcc_external',
+                'methodname' => 'get_tutor_responsavel',
+                'classpath' => 'local/wstcc/externallib.php',
+                'description' => 'Retorna o tutor responsável de cada estudante.',
+                'type' => 'read',
+        ),
+        'local_wstcc_get_students_by_course' => array(
+                'classname' => 'local_wstcc_external',
+                'methodname' => 'get_students_by_course',
+                'classpath' => 'local/wstcc/externallib.php',
+                'description' => 'Retorna a lista de estudantes de um curso específico.',
+                'type' => 'read',
+        ),
+        'local_wstcc_get_orientador_responsavel' => array(
+                'classname' => 'local_wstcc_external',
+                'methodname' => 'get_orientador_responsavel',
+                'classpath' => 'local/wstcc/externallib.php',
+                'description' => 'Retorna o orientador responsável de cada estudante.',
+                'type' => 'read',
         )
 );
 
@@ -75,7 +96,10 @@ $services = array(
                         'local_wstcc_get_user_text_for_generate_doc',
                         'local_wstcc_create_grade_item',
                         'local_wstcc_set_grade',
-                        'local_wstcc_get_users_by_field'
+                        'local_wstcc_get_users_by_field',
+                        'local_wstcc_get_tutor_responsavel',
+                        'local_wstcc_get_students_by_course',
+                        'local_wstcc_get_orientador_responsavel'
                 ),
                 'restrictedusers' => 1,
                 'downloadfiles' => 1,

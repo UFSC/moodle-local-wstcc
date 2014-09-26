@@ -8,6 +8,10 @@
 require_once($CFG->libdir."/externallib.php");
 require_once($CFG->libdir."/gradelib.php");
 require_once($CFG->dirroot.'/mod/assign/locallib.php');
+require_once($CFG->dirroot."/local/tutores/lib.php");
+require_once($CFG->dirroot."/user/lib.php");
+
+use local_ufsc\ufsc;
 
 class local_wstcc_external extends external_api {
 
@@ -154,19 +158,12 @@ class local_wstcc_external extends external_api {
      * @return array()
      */
     public static function get_username($userid) {
-        global $DB;
-
         //Parameter validation
         //REQUIRED
         $params = self::validate_parameters(self::get_username_parameters(),
                 array('userid' => $userid));
 
-
-        $sql = "SELECT username
-                  FROM {user}
-                 WHERE (id = :userid);";
-
-        $result = $DB->get_record_sql($sql, array('userid' => $params['userid']));
+        $result = $DB->get_field('user', 'username', array('id' => $userid));
 
         return array('username' => $result->username);
 
@@ -209,8 +206,7 @@ class local_wstcc_external extends external_api {
      * @since Moodle 2.4
      */
     public static function get_users_by_field($field, $values) {
-        global $CFG, $DB;
-        require_once($CFG->dirroot."/user/lib.php");
+        global $DB;
 
         $params = self::validate_parameters(self::get_users_by_field_parameters(),
                 array('field' => $field, 'values' => $values));
@@ -273,10 +269,10 @@ class local_wstcc_external extends external_api {
      */
     public static function get_users_by_field_returns() {
         $userfields = array(
-                'id'          => new external_value(PARAM_INT, 'ID of the user'),
-                'name'        => new external_value(PARAM_NOTAGS, 'The first name(s) of the user', VALUE_OPTIONAL),
-                'email'       => new external_value(PARAM_TEXT, 'An email address - allow email as root@localhost', VALUE_OPTIONAL),
-                'username'    => new external_value(PARAM_RAW, 'The username', VALUE_OPTIONAL)
+                'id' => new external_value(PARAM_INT, 'ID of the user'),
+                'name' => new external_value(PARAM_NOTAGS, 'The first name(s) of the user', VALUE_OPTIONAL),
+                'email' => new external_value(PARAM_TEXT, 'An email address - allow email as root@localhost', VALUE_OPTIONAL),
+                'username' => new external_value(PARAM_RAW, 'The username', VALUE_OPTIONAL)
         );
 
         return new external_multiple_structure(new external_single_structure($userfields));
@@ -391,5 +387,139 @@ class local_wstcc_external extends external_api {
         );
 
         return new external_single_structure($keys, 'Success');
+    }
+
+    /**
+     * Returns description of method parameters
+     *
+     * @return external_function_parameters
+     * @since Moodle 2.4
+     */
+    public static function get_tutor_responsavel_parameters() {
+        $keys = array(
+                'userid' => new external_value(PARAM_INT, 'User id', VALUE_REQUIRED),
+                'courseid' => new external_value(PARAM_INT, 'Course id', VALUE_REQUIRED),
+        );
+
+        return new external_function_parameters($keys);
+    }
+
+    public static function get_tutor_responsavel($userid, $courseid) {
+        global $CFG;
+
+        $params = self::validate_parameters(self::get_tutor_responsavel_parameters(),
+                array('userid' => $userid, 'courseid' => $courseid));
+
+        $categoria_turma = UFSC::get_categoria_turma_ufsc($params['courseid']);
+        $tutor = grupos_tutoria::get_tutor_responsavel_estudante($categoria_turma, $params['userid']);
+
+        return array('id_tutor' => $tutor->id);
+    }
+
+    public static function get_tutor_responsavel_returns() {
+        $keys = array(
+                'id_tutor' => new external_value(PARAM_RAW, 'id_tutor')
+        );
+
+        return new external_single_structure($keys, 'Id tutor');
+    }
+
+    /**
+     * Busca lista de participantes de determinado curso.
+     *
+     * @return external_function_parameters
+     */
+    public static function get_students_by_course_parameters() {
+        $keys = array(
+                'courseid' => new external_value(PARAM_INT, 'Course id', VALUE_REQUIRED),
+        );
+
+        return new external_function_parameters($keys);
+    }
+
+    public static function get_students_by_course($courseid) {
+        $params = self::validate_parameters(self::get_students_by_course_parameters(), array('courseid' => $courseid));
+
+        // Retrieve the users
+        $users = self::get_list_of_students_by_course($params['courseid']);
+
+        $returnedusers = array();
+        foreach ($users as $user) {
+            $user_details = new stdClass();
+            $user_details->id = $user->id;
+
+            $returnedusers[] = $user_details;
+        }
+
+        return $returnedusers;
+    }
+
+    public static function get_students_by_course_returns() {
+        $userfields = array('id' => new external_value(PARAM_INT, 'ID of the student'));
+
+        return new external_multiple_structure(new external_single_structure($userfields));
+    }
+
+    /**
+     * Returns description of method parameters
+     *
+     * @return external_function_parameters
+     * @since Moodle 2.4
+     */
+    public static function get_orientador_responsavel_parameters() {
+        $keys = array(
+                'userid' => new external_value(PARAM_INT, 'User id', VALUE_REQUIRED),
+                'courseid' => new external_value(PARAM_INT, 'Course id', VALUE_REQUIRED),
+        );
+
+        return new external_function_parameters($keys);
+    }
+
+    public static function get_orientador_responsavel($userid, $courseid) {
+        global $CFG;
+
+        $params = self::validate_parameters(self::get_orientador_responsavel_parameters(),
+                array('userid' => $userid, 'courseid' => $courseid));
+
+        $categoria_turma = ufsc::get_categoria_turma_ufsc($params['courseid']);
+        $orientador = grupo_orientacao::get_orientador_responsavel_estudante($categoria_turma, $params['userid']);
+
+        return array('id_orientador' => $orientador->id);
+    }
+
+    public static function get_orientador_responsavel_returns() {
+        $keys = array(
+                'id_orientador' => new external_value(PARAM_INT, 'id_orientador')
+        );
+
+        return new external_single_structure($keys, 'Id Orientador');
+    }
+
+    /**
+     * Função auxiliar que retorna a lista de participantes com papel de estudante ('roleid = 5')
+     * de um determinado curso
+     *
+     * @param $courseid
+     * @return array
+     */
+
+    protected static function get_list_of_students_by_course($courseid) {
+        global $DB;
+
+        $sql = 'SELECT DISTINCT u.id
+                  FROM {role_assignments} ra
+                  JOIN {user} u
+                    ON (u.id = ra.userid)
+                  JOIN {context} ctx
+                    ON (ctx.id = ra.contextid)
+                  JOIN {course} c
+                    ON (c.id = ctx.instanceid)
+                  JOIN {role} r
+                    ON (r.id = ra.roleid)
+                 WHERE (roleid = 5 AND c.id = :courseid AND ctx.contextlevel = :contextlevel)
+              ORDER BY u.firstname
+        ';
+
+        return $DB->get_records_sql($sql, array('courseid' => $courseid, 'contextlevel' => CONTEXT_COURSE));
     }
 }
