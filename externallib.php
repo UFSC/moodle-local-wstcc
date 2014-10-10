@@ -158,6 +158,8 @@ class local_wstcc_external extends external_api {
      * @return array()
      */
     public static function get_username($userid) {
+      global $DB;
+
         //Parameter validation
         //REQUIRED
         $params = self::validate_parameters(self::get_username_parameters(),
@@ -165,7 +167,7 @@ class local_wstcc_external extends external_api {
 
         $result = $DB->get_field('user', 'username', array('id' => $userid));
 
-        return array('username' => $result->username);
+        return array('username' => $result);
 
     }
 
