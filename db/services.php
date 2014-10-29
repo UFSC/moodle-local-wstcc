@@ -22,6 +22,13 @@
 
 // We defined the web service functions to install.
 $functions = array(
+        'local_wstcc_create_grade_item' => array(
+                'classname' => 'local_wstcc_external',
+                'methodname' => 'create_grade_item',
+                'classpath' => 'local/wstcc/externallib.php',
+                'description' => 'Cria item de nota.',
+                'type' => 'write',
+        ),
         'local_wstcc_get_user_online_text_submission' => array(
                 'classname' => 'local_wstcc_external',
                 'methodname' => 'get_user_online_text_submission',
@@ -41,20 +48,6 @@ $functions = array(
                 'methodname' => 'get_username',
                 'classpath' => 'local/wstcc/externallib.php',
                 'description' => 'Retorna username.',
-                'type' => 'read',
-        ),
-        'local_wstcc_create_grade_item' => array(
-                'classname' => 'local_wstcc_external',
-                'methodname' => 'create_grade_item',
-                'classpath' => 'local/wstcc/externallib.php',
-                'description' => 'Cria item de nota.',
-                'type' => 'read',
-        ),
-        'local_wstcc_set_grade' => array(
-                'classname' => 'local_wstcc_external',
-                'methodname' => 'set_grade',
-                'classpath' => 'local/wstcc/externallib.php',
-                'description' => 'Seta nota.',
                 'type' => 'read',
         ),
         'local_wstcc_get_users_by_field' => array(
@@ -84,6 +77,20 @@ $functions = array(
                 'classpath' => 'local/wstcc/externallib.php',
                 'description' => 'Retorna o orientador responsável de cada estudante.',
                 'type' => 'read',
+        ),
+        'local_wstcc_set_grade' => array(
+                'classname' => 'local_wstcc_external',
+                'methodname' => 'set_grade',
+                'classpath' => 'local/wstcc/externallib.php',
+                'description' => 'Define nota para um grade_item pesquisando pelo nome',
+                'type' => 'write',
+        ),
+        'local_wstcc_set_grade_lti' => array(
+                'classname' => 'local_wstcc_external',
+                'methodname' => 'set_grade_lti',
+                'classpath' => 'local/wstcc/externallib.php',
+                'description' => 'Define nota para um grade_item pesquisando pelo coursemoduleid',
+                'type' => 'write',
         )
 );
 
@@ -91,15 +98,16 @@ $functions = array(
 $services = array(
         'TCC Services' => array(
                 'functions' => array(
+                        'local_wstcc_create_grade_item',
                         'local_wstcc_get_user_online_text_submission',
                         'local_wstcc_get_username',
                         'local_wstcc_get_user_text_for_generate_doc',
-                        'local_wstcc_create_grade_item',
-                        'local_wstcc_set_grade',
                         'local_wstcc_get_users_by_field',
                         'local_wstcc_get_tutor_responsavel',
                         'local_wstcc_get_students_by_course',
-                        'local_wstcc_get_orientador_responsavel'
+                        'local_wstcc_get_orientador_responsavel',
+                        'local_wstcc_set_grade',
+                        'local_wstcc_set_grade_lti'
                 ),
                 'restrictedusers' => 1,
                 'downloadfiles' => 1,

@@ -103,10 +103,10 @@ class local_wstcc_external extends external_api {
         global $DB;
 
         $context = context_module::instance($coursemoduleid);
-        $cm = get_coursemodule_from_id(null, $coursemoduleid, null, false, MUST_EXIST);
+        $cm = get_coursemodule_from_id('assign', $coursemoduleid, null, false, MUST_EXIST);
 
         $assignsubmission = $DB->get_record('assign_submission',
-                array('assignment' => $cm->instance, 'userid' => $userid), 'id', MUST_EXIST);
+                array('assignment' => $cm->instance, 'userid' => $userid), 'id');
 
         $submission_onlinetext = $DB->get_record('assignsubmission_onlinetext',
                 array('submission' => $assignsubmission->id), 'id, onlinetext', MUST_EXIST);
@@ -158,7 +158,7 @@ class local_wstcc_external extends external_api {
      * @return array()
      */
     public static function get_username($userid) {
-      global $DB;
+        global $DB;
 
         //Parameter validation
         //REQUIRED
@@ -311,6 +311,7 @@ class local_wstcc_external extends external_api {
         $grade_item->itemmodule = 'lti';
         $grade_item->grademin = $grademin;
         $grade_item->grademax = $grademax;
+
         if ($action == 'update') {
             $result = $grade_item->update();
         } else {
@@ -383,6 +384,59 @@ class local_wstcc_external extends external_api {
     }
 
     public static function set_grade_returns() {
+        $keys = array(
+                'success' => new external_value(PARAM_BOOL, 'success'),
+                'error_message' => new external_value(PARAM_RAW, 'error_message')
+        );
+
+        return new external_single_structure($keys, 'Success');
+    }
+
+    /**
+     * Insere a nota do usuário no item especificado
+     *
+     * @param int $courseid id do curso
+     * @param int $instanceid id da atividade lti
+     * @param int $userid id do usuário
+     * @param int $grade nota
+     * @return array
+     */
+    public static function set_grade_lti($courseid, $instanceid, $userid, $grade) {
+        $error_msg = '';
+        $success = false;
+
+        $grade_item = grade_item::fetch(array(
+                'courseid' => $courseid, 'instance' => $instanceid, 'itemtype' => 'mod', 'itemmodule' => 'lti'
+        ));
+
+        if ($grade_item) {
+            $grade_grade = $grade_item->get_grade($userid);
+            $grade_grade->finalgrade = $grade;
+            $grade_grade->rawgrade = $grade;
+            $success = $grade_grade->update('manual');
+
+            if (!$success) {
+                $error_msg = 'set grade failed';
+            }
+        } else {
+            $error_msg = 'set grade failed: grade item not found';
+        }
+
+        return array('success' => $success, 'error_message' => $error_msg);
+    }
+
+    public static function set_grade_lti_parameters() {
+        return new external_function_parameters(
+                array(
+                        'courseid' => new external_value(PARAM_INT, 'Course id', VALUE_REQUIRED),
+                        'instanceid' => new external_value(PARAM_INT, 'Course Module id', VALUE_REQUIRED),
+                        'userid' => new external_value(PARAM_INT, 'User id', VALUE_REQUIRED),
+                        'grade' => new external_value(PARAM_INT, 'Grade', VALUE_REQUIRED)
+                )
+        );
+    }
+
+    public static function set_grade_lti_returns() {
         $keys = array(
                 'success' => new external_value(PARAM_BOOL, 'success'),
                 'error_message' => new external_value(PARAM_RAW, 'error_message')
