@@ -429,7 +429,7 @@ class local_wstcc_external extends external_api {
         return new external_function_parameters(
                 array(
                         'courseid' => new external_value(PARAM_INT, 'Course id', VALUE_REQUIRED),
-                        'coursemoduleid' => new external_value(PARAM_INT, 'Course Module id', VALUE_REQUIRED),
+                        'instanceid' => new external_value(PARAM_INT, 'Course Module id', VALUE_REQUIRED),
                         'userid' => new external_value(PARAM_INT, 'User id', VALUE_REQUIRED),
                         'grade' => new external_value(PARAM_INT, 'Grade', VALUE_REQUIRED)
                 )
