@@ -85,9 +85,9 @@ $functions = array(
                 'description' => 'Define nota para um grade_item pesquisando pelo nome',
                 'type' => 'write',
         ),
-        'local_wstcc_set_grade_coursemodule' => array(
+        'local_wstcc_set_grade_lti' => array(
                 'classname' => 'local_wstcc_external',
-                'methodname' => 'set_grade_coursemodule',
+                'methodname' => 'set_grade_lti',
                 'classpath' => 'local/wstcc/externallib.php',
                 'description' => 'Define nota para um grade_item pesquisando pelo coursemoduleid',
                 'type' => 'write',
@@ -107,7 +107,7 @@ $services = array(
                         'local_wstcc_get_students_by_course',
                         'local_wstcc_get_orientador_responsavel',
                         'local_wstcc_set_grade',
-                        'local_wstcc_set_grade_coursemodule'
+                        'local_wstcc_set_grade_lti'
                 ),
                 'restrictedusers' => 1,
                 'downloadfiles' => 1,
