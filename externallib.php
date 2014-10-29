@@ -158,7 +158,7 @@ class local_wstcc_external extends external_api {
      * @return array()
      */
     public static function get_username($userid) {
-      global $DB;
+        global $DB;
 
         //Parameter validation
         //REQUIRED
@@ -311,6 +311,7 @@ class local_wstcc_external extends external_api {
         $grade_item->itemmodule = 'lti';
         $grade_item->grademin = $grademin;
         $grade_item->grademax = $grademax;
+
         if ($action == 'update') {
             $result = $grade_item->update();
         } else {
@@ -383,6 +384,58 @@ class local_wstcc_external extends external_api {
     }
 
     public static function set_grade_returns() {
+        $keys = array(
+                'success' => new external_value(PARAM_BOOL, 'success'),
+                'error_message' => new external_value(PARAM_RAW, 'error_message')
+        );
+
+        return new external_single_structure($keys, 'Success');
+    }
+
+    /**
+     * Insere a nota do usuário no item especificado
+     *
+     * @param $courseid
+     * @param $coursemoduleid
+     * @param $userid
+     * @param $grade
+     * @return array
+     */
+    public static function set_grade_coursemodule($courseid, $coursemoduleid, $userid, $grade) {
+        $error_msg = '';
+        $success = false;
+
+        $instanceid = context_module::instance($coursemoduleid)->instance;
+        $grade_item = grade_item::fetch(array('courseid' => $courseid, 'instance' => $instanceid));
+
+        if ($grade_item) {
+            $grade_grade = $grade_item->get_grade($userid);
+            $grade_grade->finalgrade = $grade;
+            $grade_grade->rawgrade = $grade;
+            $success = $grade_grade->update('manual');
+
+            if (!$success) {
+                $error_msg = 'set grade failed';
+            }
+        } else {
+            $error_msg = 'set grade failed: grade item not found';
+        }
+
+        return array('success' => $success, 'error_message' => $error_msg);
+    }
+
+    public static function set_grade_coursemodule_parameters() {
+        return new external_function_parameters(
+                array(
+                        'courseid' => new external_value(PARAM_INT, 'Course id', VALUE_REQUIRED),
+                        'coursemoduleid' => new external_value(PARAM_INT, 'Course Module id', VALUE_REQUIRED),
+                        'userid' => new external_value(PARAM_INT, 'User id', VALUE_REQUIRED),
+                        'grade' => new external_value(PARAM_INT, 'Grade', VALUE_REQUIRED)
+                )
+        );
+    }
+
+    public static function set_grade_grade_coursemodule_returns() {
         $keys = array(
                 'success' => new external_value(PARAM_BOOL, 'success'),
                 'error_message' => new external_value(PARAM_RAW, 'error_message')
