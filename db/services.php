@@ -33,7 +33,7 @@ $functions = array(
                 'classname' => 'local_wstcc_external',
                 'methodname' => 'get_user_online_text_submission',
                 'classpath' => 'local/wstcc/externallib.php',
-                'description' => 'Retorna o texto submetio pelo usuário e o status dele.',
+                'description' => 'Retorna o texto submetio pelo usuário, o status e a nota maior ou igual a zero se tiver recebido a nota.',
                 'type' => 'read',
         ),
         'local_wstcc_get_user_text_for_generate_doc' => array(

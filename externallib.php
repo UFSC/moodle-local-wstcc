@@ -46,7 +46,7 @@ class local_wstcc_external extends external_api {
                         'coursemoduleid' => $coursemoduleid));
 
 
-        $sql = "SELECT ot.onlinetext, status
+        $sql = "SELECT ot.onlinetext, assub.status, ifnull(ag.grade, -1) AS grade
                   FROM {assignsubmission_onlinetext} AS ot
                   JOIN {assign_submission} AS assub
                     ON (ot.submission = assub.id)
@@ -56,12 +56,16 @@ class local_wstcc_external extends external_api {
                     ON (cm.instance = ot.assignment)
                   JOIN {modules} m
                     ON (m.id = cm.module AND m.name LIKE 'assign')
+			LEFT  JOIN {assign_grades} AS ag
+					ON (cm.instance = ag.assignment)
+                   AND (u.id = ag.userid)
                  WHERE (u.id = :userid  AND cm.id = :coursemoduleid);";
 
         $result = $DB->get_record_sql($sql, array('userid' => $params['userid'], 'coursemoduleid' => $params['coursemoduleid']));
 
-        return array('onlinetext' => $result->onlinetext, 'status' => $result->status);
-
+        return array('onlinetext' => $result->onlinetext,
+                'status' => $result->status,
+                'grade' => $result->grade);
     }
 
     /**
@@ -72,7 +76,8 @@ class local_wstcc_external extends external_api {
     public static function get_user_online_text_submission_returns() {
         $keys = array(
                 'onlinetext' => new external_value(PARAM_RAW, 'texto online'),
-                'status' => new external_value(PARAM_TEXT, 'status')
+                'status' => new external_value(PARAM_TEXT, 'status'),
+                'grade' => new external_value(PARAM_FLOAT , 'Grade')
         );
 
         return new external_single_structure($keys, 'Texto online de determinado usuário em determinada tarefa.');
