@@ -411,7 +411,7 @@ class local_wstcc_external extends external_api {
         $success = false;
 
         $grade_item = grade_item::fetch(array(
-                'courseid' => $courseid, 'instance' => $instanceid, 'itemtype' => 'mod', 'itemmodule' => 'lti'
+                'courseid' => $courseid, 'iteminstance' => $instanceid, 'itemtype' => 'mod', 'itemmodule' => 'lti'
         ));
 
         if ($grade_item) {
