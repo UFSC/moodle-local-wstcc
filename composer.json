@@ -1,5 +1,5 @@
 {
-    "name": "moodle-ufsc/local-wstcc",
+    "name": "tcc-unasus/local-wstcc",
     "description": "webservices do sistema de tcc do unasus",
     "license": "GPLv3",
     "type": "moodle-local",
