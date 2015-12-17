@@ -15,3 +15,4 @@
 $plugin->version  = 2015042901;
 $plugin->cron     = false;
 $plugin->maturity = MATURITY_STABLE;
+$plugin->component = 'local_wstcc';
