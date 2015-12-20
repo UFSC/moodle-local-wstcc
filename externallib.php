@@ -472,7 +472,7 @@ class local_wstcc_external extends external_api {
                 array('userid' => $userid, 'courseid' => $courseid));
 
         $categoria_turma = UFSC::get_categoria_turma_ufsc($params['courseid']);
-        $tutor = grupos_tutoria::get_tutor_responsavel_estudante($categoria_turma, $params['userid']);
+        $tutor = local_tutores_grupos_tutoria::get_tutor_responsavel_estudante($categoria_turma, $params['userid']);
 
         return array('id_tutor' => $tutor->id);
     }
@@ -543,7 +543,7 @@ class local_wstcc_external extends external_api {
                 array('userid' => $userid, 'courseid' => $courseid));
 
         $categoria_turma = ufsc::get_categoria_turma_ufsc($params['courseid']);
-        $orientador = grupo_orientacao::get_orientador_responsavel_estudante($categoria_turma, $params['userid']);
+        $orientador = local_tutores_grupo_orientacao::get_orientador_responsavel_estudante($categoria_turma, $params['userid']);
 
         return array('id_orientador' => $orientador->id);
     }
