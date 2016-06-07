@@ -11,8 +11,6 @@ require_once($CFG->dirroot.'/mod/assign/locallib.php');
 require_once($CFG->dirroot."/local/tutores/lib.php");
 require_once($CFG->dirroot."/user/lib.php");
 
-use local_ufsc\ufsc;
-
 class local_wstcc_external extends external_api {
 
     /**
@@ -471,7 +469,7 @@ class local_wstcc_external extends external_api {
         $params = self::validate_parameters(self::get_tutor_responsavel_parameters(),
                 array('userid' => $userid, 'courseid' => $courseid));
 
-        $categoria_turma = UFSC::get_categoria_turma_ufsc($params['courseid']);
+        $categoria_turma = \local_tutores\categoria::turma_ufsc($params['courseid']);
         $tutor = local_tutores_grupos_tutoria::get_tutor_responsavel_estudante($categoria_turma, $params['userid']);
 
         return array('id_tutor' => $tutor->id);
@@ -542,7 +540,7 @@ class local_wstcc_external extends external_api {
         $params = self::validate_parameters(self::get_orientador_responsavel_parameters(),
                 array('userid' => $userid, 'courseid' => $courseid));
 
-        $categoria_turma = ufsc::get_categoria_turma_ufsc($params['courseid']);
+        $categoria_turma = \local_tutores\categoria::turma_ufsc($params['courseid']);
         $orientador = local_tutores_grupo_orientacao::get_orientador_responsavel_estudante($categoria_turma, $params['userid']);
 
         return array('id_orientador' => $orientador->id);
