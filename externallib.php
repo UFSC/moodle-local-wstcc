@@ -363,16 +363,22 @@ class local_wstcc_external extends external_api {
             $grade_grade = $grade_item->get_grade($userid);
             $grade_grade->finalgrade = $grade;
             $grade_grade->rawgrade = $grade;
-            $success = $grade_grade->update('manual');
+            $success = grade_update("$grade_item->itemtype/$grade_item->itemmodule", //'mod/lti',
+                $grade_item->courseid,
+                $grade_item->itemtype,
+                $grade_item->itemmodule,
+                $grade_item->iteminstance,
+                0,
+                $grade_grade);
 
-            if (!$success) {
+            if ($success === GRADE_UPDATE_FAILED) {
                 $error_msg = 'set grade failed';
             }
         } else {
             $error_msg = 'set grade failed: grade item not found';
         }
 
-        return array('success' => $success, 'error_message' => $error_msg);
+        return array('success' => ($success !== GRADE_UPDATE_FAILED), 'error_message' => $error_msg);
     }
 
     public static function set_grade_parameters() {
@@ -416,16 +422,22 @@ class local_wstcc_external extends external_api {
             $grade_grade = $grade_item->get_grade($userid);
             $grade_grade->finalgrade = $grade;
             $grade_grade->rawgrade = $grade;
-            $success = $grade_grade->update('manual');
+            $success = grade_update("$grade_item->itemtype/$grade_item->itemmodule", //'mod/lti',
+                $grade_item->courseid,
+                $grade_item->itemtype,
+                $grade_item->itemmodule,
+                $grade_item->iteminstance,
+                0,
+                $grade_grade);
 
-            if (!$success) {
+            if ($success === GRADE_UPDATE_FAILED) {
                 $error_msg = 'set grade failed';
             }
         } else {
             $error_msg = 'set grade failed: grade item not found';
         }
 
-        return array('success' => $success, 'error_message' => $error_msg);
+        return array('success' => ($success !== GRADE_UPDATE_FAILED), 'error_message' => $error_msg);
     }
 
     public static function set_grade_lti_parameters() {
