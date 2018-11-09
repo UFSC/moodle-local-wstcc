@@ -193,8 +193,8 @@ class local_wstcc_external extends external_api {
      */
     public static function get_users_by_field_parameters() {
         $keys = array(
-                'field' => new external_value(PARAM_ALPHA, 'the search field can be \'id\' or \'idnumber\' or \'username\' or \'email\' or \'cpf\' '),
-                'values' => new external_multiple_structure(new external_value(PARAM_RAW, 'the value to match'))
+                'field' => new external_value(PARAM_ALPHA, 'the search field can be \'id\' or \'idnumber\' or \'username\' or \'email\' or \'cpf\' ', VALUE_REQUIRED),
+                'values' => new external_value(PARAM_TEXT, 'the value to match', VALUE_REQUIRED)
         );
 
         return new external_function_parameters($keys);
@@ -218,7 +218,7 @@ class local_wstcc_external extends external_api {
 
         // This array will keep all the users that are allowed to be searched,
         // according to the current user's privileges.
-        $cleanedvalues = array();
+//        $cleanedvalues = array();
 
         switch ($field) {
             case 'id':
@@ -234,7 +234,7 @@ class local_wstcc_external extends external_api {
                 $paramtype = PARAM_EMAIL;
                 break;
             case 'cpf':
-                $paramtype = PARAM_INT;
+                $paramtype = PARAM_RAW;
                 break;
             default:
                 throw new coding_exception('invalid field parameter',
@@ -242,21 +242,20 @@ class local_wstcc_external extends external_api {
         }
 
         // Clean the values
-        foreach ($values as $value) {
-            $cleanedvalue = clean_param($value, $paramtype);
-            if ($value != $cleanedvalue) {
-                throw new invalid_parameter_exception('The field \''.$field.
-                        '\' value is invalid: '.$value.'(cleaned value: '.$cleanedvalue.')');
-            }
-            $cleanedvalues[] = $cleanedvalue;
+        $cleanedvalues = clean_param($values, $paramtype);
+        if ($values != $cleanedvalues) {
+            throw new invalid_parameter_exception('The field \''.$field.
+                    '\' value is invalid: '.$values.'(cleaned value: '.$cleanedvalues.')');
         }
 
         if ($field == 'id') {
             $field = 'u.id';
         } elseif ($field == 'cpf') {
-            $field = 'data';
+            $values = str_replace('"','', $values);
+            $values = str_pad($values, 11, '0', STR_PAD_LEFT);
+            $field = 'ud.data';
         }
-        $cleanedvalues_str = implode(",", $cleanedvalues);
+
         $sql = "SELECT u.*,
                        ud.data AS cpf
                   FROM {user} u
@@ -267,10 +266,13 @@ class local_wstcc_external extends external_api {
                                        WHERE uif.shortname = 'cpf'
                                       )
                         )
-                  WHERE $field IN (?)
+                 WHERE ( $field = :values ) 
              ORDER BY u.id
         ";
-        $users = $DB->get_records_sql($sql, array( $cleanedvalues_str ));
+
+
+
+        $users = $DB->get_records_sql($sql, array('values' => $values));
 
         // Finally retrieve each users information
         $returnedusers = array();
@@ -300,7 +302,7 @@ class local_wstcc_external extends external_api {
                 'name' => new external_value(PARAM_NOTAGS, 'The first name(s) of the user', VALUE_OPTIONAL),
                 'email' => new external_value(PARAM_TEXT, 'An email address - allow email as root@localhost', VALUE_OPTIONAL),
                 'username' => new external_value(PARAM_RAW, 'The username', VALUE_OPTIONAL),
-                'cpf' => new external_value(PARAM_INT, 'CPF', VALUE_OPTIONAL)
+                'cpf' => new external_value(PARAM_RAW, 'CPF', VALUE_OPTIONAL)
         );
 
         return new external_multiple_structure(new external_single_structure($userfields));
