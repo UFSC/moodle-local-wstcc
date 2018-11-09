@@ -59,7 +59,7 @@ class local_wstcc_external_testcase extends externallib_advanced_testcase {
             'userid' => $user2->id, 'fieldid' => $id1, 'data' => $cpf_test2,
             'dataformat' => 0));
         $field = 'cpf';
-        $values = array($cpf_test1);
+        $values = $cpf_test1;
         $returnvalue = local_wstcc_external::get_users_by_field($field, $values);
 
         // We need to execute the return values cleaning process to simulate the web service server
@@ -69,7 +69,7 @@ class local_wstcc_external_testcase extends externallib_advanced_testcase {
         $this->assertEquals($cpf_test1, $returnvalue[0]['cpf']);
         $this->assertNotEquals($cpf_test2, $returnvalue[0]['cpf']);
 
-        $values = array($cpf_test2);
+        $values = $cpf_test2;
         $returnvalue = local_wstcc_external::get_users_by_field($field, $values);
 
         // We need to execute the return values cleaning process to simulate the web service server
@@ -81,7 +81,7 @@ class local_wstcc_external_testcase extends externallib_advanced_testcase {
 
         ### ID ###
         $field = 'id';
-        $values = array($user1->id);
+        $values = $user1->id;
         $returnvalue = local_wstcc_external::get_users_by_field($field, $values);
 
         // We need to execute the return values cleaning process to simulate the web service server
@@ -93,7 +93,7 @@ class local_wstcc_external_testcase extends externallib_advanced_testcase {
 
         ### email ###
         $field = 'email';
-        $values = array($user1->email);
+        $values = $user1->email;
         $returnvalue = local_wstcc_external::get_users_by_field($field, $values);
 
         // We need to execute the return values cleaning process to simulate the web service server
@@ -105,7 +105,7 @@ class local_wstcc_external_testcase extends externallib_advanced_testcase {
 
         ### username ###
         $field = 'username';
-        $values = array($user1->username);
+        $values = $user1->username;
         $returnvalue = local_wstcc_external::get_users_by_field($field, $values);
 
         // We need to execute the return values cleaning process to simulate the web service server
@@ -117,7 +117,7 @@ class local_wstcc_external_testcase extends externallib_advanced_testcase {
 
         ### idnumber ###
         $field = 'idnumber';
-        $values = array($user1->idnumber);
+        $values = $user1->idnumber;
         $returnvalue = local_wstcc_external::get_users_by_field($field, $values);
 
         // We need to execute the return values cleaning process to simulate the web service server
