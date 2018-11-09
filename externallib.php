@@ -193,7 +193,7 @@ class local_wstcc_external extends external_api {
      */
     public static function get_users_by_field_parameters() {
         $keys = array(
-                'field' => new external_value(PARAM_ALPHA, 'the search field can be \'id\' or \'idnumber\' or \'username\' or \'email\''),
+                'field' => new external_value(PARAM_ALPHA, 'the search field can be \'id\' or \'idnumber\' or \'username\' or \'email\' or \'cpf\' '),
                 'values' => new external_multiple_structure(new external_value(PARAM_RAW, 'the value to match'))
         );
 
@@ -213,8 +213,8 @@ class local_wstcc_external extends external_api {
     public static function get_users_by_field($field, $values) {
         global $DB;
 
-        $params = self::validate_parameters(self::get_users_by_field_parameters(),
-                array('field' => $field, 'values' => $values));
+        self::validate_parameters(self::get_users_by_field_parameters(),
+            array('field' => $field, 'values' => $values));
 
         // This array will keep all the users that are allowed to be searched,
         // according to the current user's privileges.
@@ -233,6 +233,9 @@ class local_wstcc_external extends external_api {
             case 'email':
                 $paramtype = PARAM_EMAIL;
                 break;
+            case 'cpf':
+                $paramtype = PARAM_INT;
+                break;
             default:
                 throw new coding_exception('invalid field parameter',
                         'The search field \''.$field.'\' is not supported, look at the web service documentation');
@@ -248,8 +251,26 @@ class local_wstcc_external extends external_api {
             $cleanedvalues[] = $cleanedvalue;
         }
 
-        // Retrieve the users
-        $users = $DB->get_records_list('user', $field, $cleanedvalues, 'id');
+        if ($field == 'id') {
+            $field = 'u.id';
+        } elseif ($field == 'cpf') {
+            $field = 'data';
+        }
+        $cleanedvalues_str = implode(",", $cleanedvalues);
+        $sql = "SELECT u.*,
+                       ud.data AS cpf
+                  FROM {user} u
+                  LEFT JOIN {user_info_data} ud
+                    ON (ud.userid = u.id)
+                   AND (ud.fieldid = (SELECT uif.id
+                                        FROM {user_info_field} uif
+                                       WHERE uif.shortname = 'cpf'
+                                      )
+                        )
+                  WHERE $field IN (?)
+             ORDER BY u.id
+        ";
+        $users = $DB->get_records_sql($sql, array( $cleanedvalues_str ));
 
         // Finally retrieve each users information
         $returnedusers = array();
@@ -259,6 +280,7 @@ class local_wstcc_external extends external_api {
             $user_details->name = fullname($user);
             $user_details->email = $user->email;
             $user_details->username = $user->username;
+            $user_details->cpf = $user->cpf;
 
             $returnedusers[] = $user_details;
         }
@@ -277,7 +299,8 @@ class local_wstcc_external extends external_api {
                 'id' => new external_value(PARAM_INT, 'ID of the user'),
                 'name' => new external_value(PARAM_NOTAGS, 'The first name(s) of the user', VALUE_OPTIONAL),
                 'email' => new external_value(PARAM_TEXT, 'An email address - allow email as root@localhost', VALUE_OPTIONAL),
-                'username' => new external_value(PARAM_RAW, 'The username', VALUE_OPTIONAL)
+                'username' => new external_value(PARAM_RAW, 'The username', VALUE_OPTIONAL),
+                'cpf' => new external_value(PARAM_INT, 'CPF', VALUE_OPTIONAL)
         );
 
         return new external_multiple_structure(new external_single_structure($userfields));

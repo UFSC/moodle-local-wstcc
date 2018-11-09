@@ -12,7 +12,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-$plugin->version  = 2015042901;
+$plugin->version  = 201811090701;
 $plugin->cron     = false;
 $plugin->maturity = MATURITY_STABLE;
 $plugin->component = 'local_wstcc';

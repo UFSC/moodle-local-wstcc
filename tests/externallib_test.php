@@ -35,6 +35,101 @@ class local_wstcc_external_testcase extends externallib_advanced_testcase {
         $this->assertEquals($user->username, $returnvalue['username']);
     }
 
+    /**
+     * Get User by field Test
+     */
+    public function test_get_users_by_field() {
+        global $DB;
+        $cpf_test1 = '99999999999';
+        $cpf_test2 = "99999999998";
+        $this->resetAfterTest(true);
+
+        $user1 = self::getDataGenerator()->create_user();
+        $user2 = self::getDataGenerator()->create_user();
+
+        $id1 = $DB->insert_record('user_info_field', array(
+            'shortname' => 'cpf', 'name' => 'CPF', 'categoryid' => 1,
+            'datatype' => 'text'));
+
+        $DB->insert_record('user_info_data', array(
+            'userid' => $user1->id, 'fieldid' => $id1, 'data' => $cpf_test1,
+            'dataformat' => 0));
+
+        $DB->insert_record('user_info_data', array(
+            'userid' => $user2->id, 'fieldid' => $id1, 'data' => $cpf_test2,
+            'dataformat' => 0));
+        $field = 'cpf';
+        $values = array($cpf_test1);
+        $returnvalue = local_wstcc_external::get_users_by_field($field, $values);
+
+        // We need to execute the return values cleaning process to simulate the web service server
+        $returnvalue = external_api::clean_returnvalue(local_wstcc_external::get_users_by_field_returns(), $returnvalue);
+
+        // Assertions
+        $this->assertEquals($cpf_test1, $returnvalue[0]['cpf']);
+        $this->assertNotEquals($cpf_test2, $returnvalue[0]['cpf']);
+
+        $values = array($cpf_test2);
+        $returnvalue = local_wstcc_external::get_users_by_field($field, $values);
+
+        // We need to execute the return values cleaning process to simulate the web service server
+        $returnvalue = external_api::clean_returnvalue(local_wstcc_external::get_users_by_field_returns(), $returnvalue);
+
+        // Assertions
+        $this->assertEquals($cpf_test2, $returnvalue[0]['cpf']);
+        $this->assertNotEquals($cpf_test1, $returnvalue[0]['cpf']);
+
+        ### ID ###
+        $field = 'id';
+        $values = array($user1->id);
+        $returnvalue = local_wstcc_external::get_users_by_field($field, $values);
+
+        // We need to execute the return values cleaning process to simulate the web service server
+        $returnvalue = external_api::clean_returnvalue(local_wstcc_external::get_users_by_field_returns(), $returnvalue);
+
+        // Assertions
+        $this->assertEquals($cpf_test1, $returnvalue[0]['cpf']);
+        $this->assertNotEquals($cpf_test2, $returnvalue[0]['cpf']);
+
+        ### email ###
+        $field = 'email';
+        $values = array($user1->email);
+        $returnvalue = local_wstcc_external::get_users_by_field($field, $values);
+
+        // We need to execute the return values cleaning process to simulate the web service server
+        $returnvalue = external_api::clean_returnvalue(local_wstcc_external::get_users_by_field_returns(), $returnvalue);
+
+        // Assertions
+        $this->assertEquals($cpf_test1, $returnvalue[0]['cpf']);
+        $this->assertNotEquals($cpf_test2, $returnvalue[0]['cpf']);
+
+        ### username ###
+        $field = 'username';
+        $values = array($user1->username);
+        $returnvalue = local_wstcc_external::get_users_by_field($field, $values);
+
+        // We need to execute the return values cleaning process to simulate the web service server
+        $returnvalue = external_api::clean_returnvalue(local_wstcc_external::get_users_by_field_returns(), $returnvalue);
+
+        // Assertions
+        $this->assertEquals($cpf_test1, $returnvalue[0]['cpf']);
+        $this->assertNotEquals($cpf_test2, $returnvalue[0]['cpf']);
+
+        ### idnumber ###
+        $field = 'idnumber';
+        $values = array($user1->idnumber);
+        $returnvalue = local_wstcc_external::get_users_by_field($field, $values);
+
+        // We need to execute the return values cleaning process to simulate the web service server
+        $returnvalue = external_api::clean_returnvalue(local_wstcc_external::get_users_by_field_returns(), $returnvalue);
+
+        // Assertions
+        $this->assertEquals($cpf_test1, $returnvalue[0]['cpf']);
+        $this->assertNotEquals($cpf_test2, $returnvalue[0]['cpf']);
+    }
+
+
+
     public function test_get_user_online_text_submission() {
         global $DB;
         $this->resetAfterTest(true);
