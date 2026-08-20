@@ -44,8 +44,12 @@ class local_wstcc_external_testcase extends externallib_advanced_testcase {
         $cpf_test2 = "99999999998";
         $this->resetAfterTest(true);
 
-        $user1 = self::getDataGenerator()->create_user();
-        $user2 = self::getDataGenerator()->create_user();
+        // idnumber explicito: o create_user() do generator preenche com string
+        // VAZIA, e a busca por idnumber no fim deste teste casava com os dois
+        // usuarios -- $returnvalue[0] vinha o outro, e a assercao falhava sem
+        // que houvesse nada errado com o get_users_by_field.
+        $user1 = self::getDataGenerator()->create_user(array('idnumber' => 'IDN-0001'));
+        $user2 = self::getDataGenerator()->create_user(array('idnumber' => 'IDN-0002'));
 
         $id1 = $DB->insert_record('user_info_field', array(
             'shortname' => 'cpf', 'name' => 'CPF', 'categoryid' => 1,
