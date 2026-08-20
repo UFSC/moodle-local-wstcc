@@ -485,6 +485,158 @@ class local_wstcc_external extends external_api {
         return new external_single_structure($keys, 'Success');
     }
 
+    public static function clear_grade_lti_parameters() {
+        return new external_function_parameters(
+                array(
+                        'courseid' => new external_value(PARAM_INT, 'Course id', VALUE_REQUIRED),
+                        'instanceid' => new external_value(PARAM_INT, 'LTI instance id', VALUE_REQUIRED),
+                        'userid' => new external_value(PARAM_INT, 'User id', VALUE_REQUIRED)
+                )
+        );
+    }
+
+    /**
+     * Apaga a nota do aluno no item da atividade LTI.
+     *
+     * Funcao separada do set_grade_lti de proposito: aquele declara `grade`
+     * como PARAM_INT obrigatorio, entao "sem nota" chegaria como 0 -- que e uma
+     * avaliacao legitima, nao a ausencia dela. Sendo escrita destrutiva,
+     * tambem e melhor que apareca com nome proprio no log do webservice.
+     *
+     * Como em qualquer escrita, o Moodle preserva nota sobreposta ou travada
+     * (update_raw_grade so mexe no finalgrade se !is_locked() e !is_overridden()).
+     *
+     * @param int $courseid
+     * @param int $instanceid
+     * @param int $userid
+     * @return array
+     */
+    public static function clear_grade_lti($courseid, $instanceid, $userid) {
+        $params = self::validate_parameters(self::clear_grade_lti_parameters(),
+                array('courseid' => $courseid, 'instanceid' => $instanceid, 'userid' => $userid));
+
+        $grade_item = grade_item::fetch(array(
+                'courseid' => $params['courseid'], 'iteminstance' => $params['instanceid'],
+                'itemtype' => 'mod', 'itemmodule' => 'lti', 'itemnumber' => 0
+        ));
+
+        if (!$grade_item) {
+            return array('success' => false, 'error_message' => 'clear grade failed: grade item not found');
+        }
+
+        $grade_grade = $grade_item->get_grade($params['userid']);
+
+        // null (e nao 0): em grade_update, `false` significa "nao informado" e
+        // `null` significa "sem nota" -- e o que zera o finalgrade.
+        $grade_grade->rawgrade = null;
+        $grade_grade->finalgrade = null;
+
+        $success = grade_update("$grade_item->itemtype/$grade_item->itemmodule",
+                $grade_item->courseid,
+                $grade_item->itemtype,
+                $grade_item->itemmodule,
+                $grade_item->iteminstance,
+                0,
+                $grade_grade);
+
+        return array('success' => ($success !== GRADE_UPDATE_FAILED),
+                'error_message' => ($success === GRADE_UPDATE_FAILED ? 'clear grade failed' : ''));
+    }
+
+    public static function clear_grade_lti_returns() {
+        return new external_single_structure(array(
+                'success' => new external_value(PARAM_BOOL, 'success'),
+                'error_message' => new external_value(PARAM_RAW, 'error_message')
+        ));
+    }
+
+    public static function get_grades_lti_parameters() {
+        return new external_function_parameters(
+                array(
+                        'courseid' => new external_value(PARAM_INT, 'Course id', VALUE_REQUIRED),
+                        'instanceid' => new external_value(PARAM_INT, 'LTI instance id', VALUE_REQUIRED)
+                )
+        );
+    }
+
+    /**
+     * Devolve o boletim inteiro do item de nota da atividade LTI, numa chamada.
+     *
+     * Existe para o consumidor comparar antes de gravar: sem isto, sincronizar
+     * um curso custa uma chamada de escrita por aluno (588 no curso 547).
+     *
+     * `overridden` e `locked` vao junto porque sao o que decide se a escrita
+     * teria efeito: em grade_item::update_raw_grade() o Moodle so recalcula o
+     * finalgrade `if (!$grade->is_locked() and !$grade->is_overridden())`. Sem
+     * esses dois campos, quem chama nao distingue "nota nao chegou" de "o
+     * professor sobrepos no livro de notas" e reenvia para sempre o que nunca
+     * vai mudar.
+     *
+     * @param int $courseid
+     * @param int $instanceid id da instancia da atividade LTI
+     * @return array
+     */
+    public static function get_grades_lti($courseid, $instanceid) {
+        global $DB;
+
+        $params = self::validate_parameters(self::get_grades_lti_parameters(),
+                array('courseid' => $courseid, 'instanceid' => $instanceid));
+
+        // itemnumber = 0 e o item principal da atividade. O create_grade_item
+        // deste mesmo plugin cria itens extras na MESMA iteminstance com
+        // itemnumber 1..3 ("Eixo 1/2/3", turmas de 2013) -- sem este filtro, um
+        // fetch devolveria a coluna errada onde eles existem.
+        $grade_item = grade_item::fetch(array(
+                'courseid' => $params['courseid'], 'iteminstance' => $params['instanceid'],
+                'itemtype' => 'mod', 'itemmodule' => 'lti', 'itemnumber' => 0
+        ));
+
+        if (!$grade_item) {
+            return array('success' => false, 'error_message' => 'get grades failed: grade item not found',
+                    'grades' => array());
+        }
+
+        $grades = array();
+
+        $rs = $DB->get_recordset('grade_grades', array('itemid' => $grade_item->id),
+                '', 'id, userid, finalgrade, overridden, locked');
+
+        foreach ($rs as $g) {
+            // finalgrade NULL = nunca recebeu nota, que e diferente de zero:
+            // devolvemos os dois estados como sao e quem chama decide.
+            $grades[] = array(
+                    'userid' => (int) $g->userid,
+                    'grade' => is_null($g->finalgrade) ? null : (float) $g->finalgrade,
+                    'overridden' => ((int) $g->overridden > 0),
+                    'locked' => ((int) $g->locked > 0)
+            );
+        }
+
+        $rs->close();
+
+        return array('success' => true, 'error_message' => '', 'grades' => $grades);
+    }
+
+    public static function get_grades_lti_returns() {
+        return new external_single_structure(array(
+                'success' => new external_value(PARAM_BOOL, 'success'),
+                'error_message' => new external_value(PARAM_RAW, 'error_message'),
+                'grades' => new external_multiple_structure(
+                        new external_single_structure(array(
+                                'userid' => new external_value(PARAM_INT, 'User id'),
+                                // VALUE_REQUIRED + NULL_ALLOWED (e nao VALUE_OPTIONAL):
+                                // com OPTIONAL o Moodle REMOVE a chave quando o valor
+                                // e null, e quem chama perderia a diferenca entre
+                                // "sem nota" e "usuario ausente da resposta".
+                                'grade' => new external_value(PARAM_FLOAT, 'Final grade, null quando sem nota',
+                                        VALUE_REQUIRED, null, NULL_ALLOWED),
+                                'overridden' => new external_value(PARAM_BOOL, 'Nota sobreposta no livro de notas'),
+                                'locked' => new external_value(PARAM_BOOL, 'Nota travada no livro de notas')
+                        ))
+                )
+        ));
+    }
+
     /**
      * Returns description of method parameters
      *

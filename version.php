@@ -12,7 +12,11 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-$plugin->version  = 201811090703;
+// Sem bump o Moodle nao rele o db/services.php, e a funcao nova continua
+// respondendo invalidrecord no webservice.
+// Mantido o formato de 12 digitos do valor anterior (201811090703): um numero
+// mais curto seria MENOR e o upgrade nunca rodaria.
+$plugin->version  = 202608201700;
 $plugin->cron     = false;
 $plugin->maturity = MATURITY_STABLE;
 $plugin->component = 'local_wstcc';

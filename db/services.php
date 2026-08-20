@@ -91,6 +91,20 @@ $functions = array(
                 'classpath' => 'local/wstcc/externallib.php',
                 'description' => 'Define nota para um grade_item pesquisando pelo coursemoduleid',
                 'type' => 'write',
+        ),
+        'local_wstcc_get_grades_lti' => array(
+                'classname' => 'local_wstcc_external',
+                'methodname' => 'get_grades_lti',
+                'classpath' => 'local/wstcc/externallib.php',
+                'description' => 'Devolve o boletim do grade_item da atividade LTI (nota, overridden, locked)',
+                'type' => 'read',
+        ),
+        'local_wstcc_clear_grade_lti' => array(
+                'classname' => 'local_wstcc_external',
+                'methodname' => 'clear_grade_lti',
+                'classpath' => 'local/wstcc/externallib.php',
+                'description' => 'Apaga a nota do aluno no grade_item da atividade LTI',
+                'type' => 'write',
         )
 );
 
@@ -107,7 +121,9 @@ $services = array(
                         'local_wstcc_get_students_by_course',
                         'local_wstcc_get_orientador_responsavel',
                         'local_wstcc_set_grade',
-                        'local_wstcc_set_grade_lti'
+                        'local_wstcc_set_grade_lti',
+                        'local_wstcc_get_grades_lti',
+                        'local_wstcc_clear_grade_lti'
                 ),
                 'restrictedusers' => 1,
                 'downloadfiles' => 1,
