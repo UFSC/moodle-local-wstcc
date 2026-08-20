@@ -472,12 +472,26 @@ class local_wstcc_external extends external_api {
         //
         // Releitura do banco, e nao o objeto em memoria: o finalgrade e
         // recalculado dentro do grade_update.
-        if ($grade_item) {
-            $atual = grade_grade::fetch(array('itemid' => $grade_item->id, 'userid' => $userid));
+        //
+        // O item relido e o de itemnumber 0 -- o MESMO em que o grade_update
+        // acima grava (ele passa itemnumber fixo em 0). O fetch la em cima nao
+        // filtra itemnumber (defeito herdado, ver #42): onde existirem itens de
+        // "Eixo" na mesma iteminstance, ele pode resolver outro item, e reler
+        // por ele reportaria o estado de uma coluna diferente da que foi
+        // escrita.
+        $item_escrito = grade_item::fetch(array(
+                'courseid' => $courseid, 'iteminstance' => $instanceid,
+                'itemtype' => 'mod', 'itemmodule' => 'lti', 'itemnumber' => 0
+        ));
+
+        if ($item_escrito) {
+            $atual = grade_grade::fetch(array('itemid' => $item_escrito->id, 'userid' => $userid));
 
             if ($atual) {
                 $retorno['overridden'] = ((int) $atual->overridden > 0);
-                $retorno['locked'] = ((int) $atual->locked > 0);
+                // o item inteiro travado tambem impede a nota de entrar, e nesse
+                // caso a celula em si pode nem estar marcada
+                $retorno['locked'] = ((int) $atual->locked > 0 || $item_escrito->is_locked());
                 $retorno['finalgrade'] = is_null($atual->finalgrade) ? null : (float) $atual->finalgrade;
             }
         }
@@ -553,12 +567,36 @@ class local_wstcc_external extends external_api {
             return array('success' => false, 'error_message' => 'clear grade failed: grade item not found');
         }
 
-        $grade_grade = $grade_item->get_grade($params['userid']);
+        // grade_grade::fetch, e NAO $grade_item->get_grade(): o get_grade INSERE
+        // a linha quando ela nao existe. Limpar a nota de quem nunca teve uma
+        // materializaria uma celula vazia no boletim -- e mudaria o que o
+        // get_grades_lti devolve depois (o aluno deixaria de estar ausente da
+        // resposta e passaria a vir com grade null).
+        $atual = grade_grade::fetch(array('itemid' => $grade_item->id, 'userid' => $params['userid']));
+
+        if (!$atual || is_null($atual->finalgrade)) {
+            // ja esta sem nota: nada a fazer, e sucesso (idempotente)
+            return array('success' => true, 'error_message' => '',
+                    'overridden' => false, 'locked' => false, 'finalgrade' => null);
+        }
+
+        // Sobreposta ou travada: o Moodle NAO apagaria o finalgrade
+        // (update_raw_grade so mexe nele se !is_locked() e !is_overridden()) e
+        // ainda assim o grade_update responderia OK. Devolver sucesso aqui era
+        // o mesmo defeito que este plugin passou a evitar no set_grade_lti: o
+        // consumidor tentaria limpar de novo, para sempre.
+        if ((int) $atual->overridden > 0 || (int) $atual->locked > 0 || $grade_item->is_locked()) {
+            return array('success' => false,
+                    'error_message' => 'clear grade failed: grade is overridden or locked',
+                    'overridden' => ((int) $atual->overridden > 0),
+                    'locked' => ((int) $atual->locked > 0 || $grade_item->is_locked()),
+                    'finalgrade' => (float) $atual->finalgrade);
+        }
 
         // null (e nao 0): em grade_update, `false` significa "nao informado" e
         // `null` significa "sem nota" -- e o que zera o finalgrade.
-        $grade_grade->rawgrade = null;
-        $grade_grade->finalgrade = null;
+        $atual->rawgrade = null;
+        $atual->finalgrade = null;
 
         $success = grade_update("$grade_item->itemtype/$grade_item->itemmodule",
                 $grade_item->courseid,
@@ -566,16 +604,56 @@ class local_wstcc_external extends external_api {
                 $grade_item->itemmodule,
                 $grade_item->iteminstance,
                 0,
-                $grade_grade);
+                $atual);
 
-        return array('success' => ($success !== GRADE_UPDATE_FAILED),
-                'error_message' => ($success === GRADE_UPDATE_FAILED ? 'clear grade failed' : ''));
+        // GRADE_UPDATE_OK (0) e o unico sucesso: FAILED e 1, MULTIPLE e 2 e
+        // ITEM_LOCKED e 4 (lib/grade/constants.php). Comparar com
+        // `!== GRADE_UPDATE_FAILED` daria sucesso num item travado, em que o
+        // grade_update sai no inicio sem tocar em nada.
+        $depois = grade_grade::fetch(array('itemid' => $grade_item->id, 'userid' => $params['userid']));
+
+        return array('success' => ($success === GRADE_UPDATE_OK),
+                'error_message' => self::mensagem_do_grade_update($success, 'clear grade failed'),
+                'overridden' => ($depois ? ((int) $depois->overridden > 0) : false),
+                'locked' => ($depois ? ((int) $depois->locked > 0) : false),
+                'finalgrade' => ($depois && !is_null($depois->finalgrade)) ? (float) $depois->finalgrade : null);
+    }
+
+    /**
+     * Traduz o retorno do grade_update para mensagem, '' quando OK.
+     *
+     * @param int $codigo
+     * @param string $prefixo
+     * @return string
+     */
+    protected static function mensagem_do_grade_update($codigo, $prefixo) {
+        if ($codigo === GRADE_UPDATE_OK) {
+            return '';
+        }
+
+        if ($codigo === GRADE_UPDATE_ITEM_LOCKED) {
+            return $prefixo . ': grade item is locked';
+        }
+
+        if ($codigo === GRADE_UPDATE_MULTIPLE) {
+            return $prefixo . ': multiple grade items found';
+        }
+
+        return $prefixo;
     }
 
     public static function clear_grade_lti_returns() {
         return new external_single_structure(array(
                 'success' => new external_value(PARAM_BOOL, 'success'),
-                'error_message' => new external_value(PARAM_RAW, 'error_message')
+                'error_message' => new external_value(PARAM_RAW, 'error_message'),
+                // Mesmo contrato do set_grade_lti: sem o estado, quem chama nao
+                // distingue "apagou" de "o professor sobrepos" e tenta de novo.
+                'overridden' => new external_value(PARAM_BOOL, 'Nota sobreposta no livro de notas',
+                        VALUE_OPTIONAL),
+                'locked' => new external_value(PARAM_BOOL, 'Nota (ou item) travada no livro de notas',
+                        VALUE_OPTIONAL),
+                'finalgrade' => new external_value(PARAM_FLOAT, 'Nota que ficou no boletim apos a tentativa',
+                        VALUE_OPTIONAL, null, NULL_ALLOWED)
         ));
     }
 
@@ -654,9 +732,11 @@ class local_wstcc_external extends external_api {
                         new external_single_structure(array(
                                 'userid' => new external_value(PARAM_INT, 'User id'),
                                 // VALUE_REQUIRED + NULL_ALLOWED (e nao VALUE_OPTIONAL):
-                                // com OPTIONAL o Moodle REMOVE a chave quando o valor
-                                // e null, e quem chama perderia a diferenca entre
-                                // "sem nota" e "usuario ausente da resposta".
+                                // o clean_returnvalue decide por array_key_exists, entao
+                                // OPTIONAL so omite a chave quando ela nao vem no array --
+                                // mas ai o formato XML do REST a emite como
+                                // <VALUE null="null"/>, e "sem nota" ficaria igual a
+                                // "estado desconhecido". Com REQUIRED a chave sempre vem.
                                 'grade' => new external_value(PARAM_FLOAT, 'Final grade, null quando sem nota',
                                         VALUE_REQUIRED, null, NULL_ALLOWED),
                                 'overridden' => new external_value(PARAM_BOOL, 'Nota sobreposta no livro de notas'),

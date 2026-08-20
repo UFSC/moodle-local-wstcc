@@ -312,10 +312,66 @@ class local_wstcc_external_testcase extends externallib_advanced_testcase {
 
         $grade_item->update_final_grade($aluno->id, 96);
 
-        local_wstcc_external::clear_grade_lti($course->id, $lti->id, $aluno->id);
+        $returnvalue = local_wstcc_external::clear_grade_lti($course->id, $lti->id, $aluno->id);
+        $returnvalue = external_api::clean_returnvalue(local_wstcc_external::clear_grade_lti_returns(), $returnvalue);
 
         $grade_grade = grade_grade::fetch(array('itemid' => $grade_item->id, 'userid' => $aluno->id));
         $this->assertEquals(96, $grade_grade->finalgrade);
+
+        // A nota NAO foi apagada, entao isto nao pode responder sucesso: era o
+        // mesmo defeito que o set_grade_lti passou a evitar -- quem chama
+        // tentaria limpar de novo a cada rodada, para sempre.
+        $this->assertFalse($returnvalue['success']);
+        $this->assertTrue($returnvalue['overridden']);
+        $this->assertEquals(96, $returnvalue['finalgrade']);
+    }
+
+    /**
+     * Item de nota travado: o grade_update sai no inicio devolvendo
+     * GRADE_UPDATE_ITEM_LOCKED (4), sem tocar em nada. Comparar com
+     * `!== GRADE_UPDATE_FAILED` (1) daria sucesso.
+     */
+    public function test_clear_grade_lti_com_item_travado() {
+        $this->resetAfterTest(true);
+
+        list($course, $lti, $grade_item) = $this->setup_lti_com_item();
+
+        $aluno = self::getDataGenerator()->create_user();
+        $this->getDataGenerator()->enrol_user($aluno->id, $course->id);
+
+        local_wstcc_external::set_grade_lti($course->id, $lti->id, $aluno->id, 85);
+        $grade_item->set_locked(1);
+
+        $returnvalue = local_wstcc_external::clear_grade_lti($course->id, $lti->id, $aluno->id);
+        $returnvalue = external_api::clean_returnvalue(local_wstcc_external::clear_grade_lti_returns(), $returnvalue);
+
+        $this->assertFalse($returnvalue['success']);
+        $this->assertTrue($returnvalue['locked']);
+
+        $grade_grade = grade_grade::fetch(array('itemid' => $grade_item->id, 'userid' => $aluno->id));
+        $this->assertEquals(85, $grade_grade->finalgrade);
+    }
+
+    /**
+     * Limpar quem nunca teve nota nao pode CRIAR a celula: o get_grade() insere
+     * quando nao existe, e isso mudaria ate o que o get_grades_lti devolve
+     * depois (o aluno deixaria de estar ausente da resposta).
+     */
+    public function test_clear_grade_lti_nao_cria_celula() {
+        $this->resetAfterTest(true);
+
+        list($course, $lti, $grade_item) = $this->setup_lti_com_item();
+
+        $aluno = self::getDataGenerator()->create_user();
+        $this->getDataGenerator()->enrol_user($aluno->id, $course->id);
+
+        $returnvalue = local_wstcc_external::clear_grade_lti($course->id, $lti->id, $aluno->id);
+        $returnvalue = external_api::clean_returnvalue(local_wstcc_external::clear_grade_lti_returns(), $returnvalue);
+
+        // idempotente: ja estava sem nota
+        $this->assertTrue($returnvalue['success']);
+
+        $this->assertFalse(grade_grade::fetch(array('itemid' => $grade_item->id, 'userid' => $aluno->id)));
     }
 
     /**
@@ -347,12 +403,37 @@ class local_wstcc_external_testcase extends externallib_advanced_testcase {
         $this->assertFalse($por_usuario[$com_nota->id]['overridden']);
         $this->assertFalse($por_usuario[$com_nota->id]['locked']);
 
-        // Contrato de "sem nota": o Moodle so cria a linha em grade_grades
-        // quando ha o que gravar, entao quem nunca recebeu nota ou fica FORA da
-        // resposta ou vem com grade null. Os dois significam ausencia -- e
-        // nenhum deles e zero, que seria uma avaliacao legitima.
-        $ausente_da_resposta = !array_key_exists($sem_nota->id, $por_usuario);
-        $this->assertTrue($ausente_da_resposta || is_null($por_usuario[$sem_nota->id]['grade']));
+        // Contrato 1: quem nunca teve celula fica FORA da resposta. Um
+        // `assertTrue($ausente || is_null($grade))` aceitaria os dois
+        // comportamentos e nao pegaria regressao nenhuma.
+        $this->assertArrayNotHasKey($sem_nota->id, $por_usuario);
+    }
+
+    /**
+     * Contrato 2: a celula que existe mas esta sem nota vem com grade NULL --
+     * e nunca zero, que seria uma avaliacao legitima.
+     */
+    public function test_get_grades_lti_celula_sem_nota_vem_como_null() {
+        $this->resetAfterTest(true);
+
+        list($course, $lti, $grade_item) = $this->setup_lti_com_item();
+
+        $aluno = self::getDataGenerator()->create_user();
+        $this->getDataGenerator()->enrol_user($aluno->id, $course->id);
+
+        // get_grade() cria a linha (e assim que ela nasce sem nota no Moodle)
+        $grade_item->get_grade($aluno->id);
+
+        $returnvalue = local_wstcc_external::get_grades_lti($course->id, $lti->id);
+        $returnvalue = external_api::clean_returnvalue(local_wstcc_external::get_grades_lti_returns(), $returnvalue);
+
+        $por_usuario = array();
+        foreach ($returnvalue['grades'] as $g) {
+            $por_usuario[$g['userid']] = $g;
+        }
+
+        $this->assertArrayHasKey($aluno->id, $por_usuario);
+        $this->assertNull($por_usuario[$aluno->id]['grade']);
     }
 
     /**
@@ -402,7 +483,10 @@ class local_wstcc_external_testcase extends externallib_advanced_testcase {
         $returnvalue = external_api::clean_returnvalue(local_wstcc_external::get_grades_lti_returns(), $returnvalue);
 
         $this->assertFalse($returnvalue['success']);
-        $this->assertContains('grade item not found', $returnvalue['error_message']);
+        // strpos em vez de assertContains/assertStringContainsString: o primeiro
+        // saiu no PHPUnit 9 (Moodle 4.5) e o segundo nao existe no 4.8 (Moodle
+        // 3.0). Assim a assercao vale nas duas pontas.
+        $this->assertTrue(strpos($returnvalue['error_message'], 'grade item not found') !== false);
         $this->assertEquals(array(), $returnvalue['grades']);
     }
 
