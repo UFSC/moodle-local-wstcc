@@ -240,6 +240,43 @@ class local_wstcc_external_testcase extends externallib_advanced_testcase {
     }
 
     /**
+     * O set_grade_lti responde sucesso mesmo quando a nota nao teve efeito
+     * (sobreposta/travada). O estado da celula no retorno e o que permite ao
+     * consumidor avisar quem avaliou, em vez de dizer "salvo com sucesso" e
+     * deixar o boletim com o valor antigo.
+     */
+    public function test_set_grade_lti_devolve_estado_da_celula() {
+        $this->resetAfterTest(true);
+
+        list($course, $lti, $grade_item) = $this->setup_lti_com_item();
+
+        $normal = self::getDataGenerator()->create_user();
+        $sobreposto = self::getDataGenerator()->create_user();
+        $this->getDataGenerator()->enrol_user($normal->id, $course->id);
+        $this->getDataGenerator()->enrol_user($sobreposto->id, $course->id);
+
+        // nota que entra normalmente
+        $returnvalue = local_wstcc_external::set_grade_lti($course->id, $lti->id, $normal->id, 85);
+        $returnvalue = external_api::clean_returnvalue(local_wstcc_external::set_grade_lti_returns(), $returnvalue);
+
+        $this->assertTrue($returnvalue['success']);
+        $this->assertFalse($returnvalue['overridden']);
+        $this->assertFalse($returnvalue['locked']);
+        $this->assertEquals(85, $returnvalue['finalgrade']);
+
+        // nota que o professor sobrepos no livro de notas
+        $grade_item->update_final_grade($sobreposto->id, 96);
+
+        $returnvalue = local_wstcc_external::set_grade_lti($course->id, $lti->id, $sobreposto->id, 85);
+        $returnvalue = external_api::clean_returnvalue(local_wstcc_external::set_grade_lti_returns(), $returnvalue);
+
+        // sucesso, porque o grade_update funcionou -- mas o boletim continua 96
+        $this->assertTrue($returnvalue['success']);
+        $this->assertTrue($returnvalue['overridden']);
+        $this->assertEquals(96, $returnvalue['finalgrade']);
+    }
+
+    /**
      * Limpar tem que resultar em SEM NOTA, e nao em nota zero -- zero e uma
      * avaliacao legitima.
      */

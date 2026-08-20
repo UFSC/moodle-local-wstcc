@@ -462,7 +462,27 @@ class local_wstcc_external extends external_api {
             $error_msg = 'set grade failed: grade item not found';
         }
 
-        return array('success' => ($success !== GRADE_UPDATE_FAILED), 'error_message' => $error_msg);
+        $retorno = array('success' => ($success !== GRADE_UPDATE_FAILED), 'error_message' => $error_msg);
+
+        // Estado da celula DEPOIS da tentativa: e o unico jeito de quem chama
+        // saber que a nota nao teve efeito. Com a nota sobreposta ou travada,
+        // update_raw_grade() nao mexe no finalgrade e este webservice responde
+        // sucesso do mesmo jeito -- o consumidor dizia "salvo com sucesso" e o
+        // boletim seguia com o valor antigo, sem avisar ninguem.
+        //
+        // Releitura do banco, e nao o objeto em memoria: o finalgrade e
+        // recalculado dentro do grade_update.
+        if ($grade_item) {
+            $atual = grade_grade::fetch(array('itemid' => $grade_item->id, 'userid' => $userid));
+
+            if ($atual) {
+                $retorno['overridden'] = ((int) $atual->overridden > 0);
+                $retorno['locked'] = ((int) $atual->locked > 0);
+                $retorno['finalgrade'] = is_null($atual->finalgrade) ? null : (float) $atual->finalgrade;
+            }
+        }
+
+        return $retorno;
     }
 
     public static function set_grade_lti_parameters() {
@@ -479,7 +499,16 @@ class local_wstcc_external extends external_api {
     public static function set_grade_lti_returns() {
         $keys = array(
                 'success' => new external_value(PARAM_BOOL, 'success'),
-                'error_message' => new external_value(PARAM_RAW, 'error_message')
+                'error_message' => new external_value(PARAM_RAW, 'error_message'),
+                // VALUE_OPTIONAL: ausentes quando nao houve celula para ler
+                // (item inexistente). Chaves novas nao quebram quem ja consome
+                // esta funcao -- so passam a ser ignoradas.
+                'overridden' => new external_value(PARAM_BOOL, 'Nota sobreposta no livro de notas',
+                        VALUE_OPTIONAL),
+                'locked' => new external_value(PARAM_BOOL, 'Nota travada no livro de notas',
+                        VALUE_OPTIONAL),
+                'finalgrade' => new external_value(PARAM_FLOAT, 'Nota que ficou no boletim apos a tentativa',
+                        VALUE_OPTIONAL, null, NULL_ALLOWED)
         );
 
         return new external_single_structure($keys, 'Success');
