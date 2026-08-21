@@ -5,7 +5,34 @@
  * @package    localwstcc
  * @author     Bruno Silveira
  */
-require_once($CFG->libdir."/externallib.php");
+// Este plugin atende o Moodle 3.0 e o 4.5 com um tronco unico, e o externallib.php do
+// core mudou de status entre os dois: foi depreciado no 4.2 (as classes viraram
+// core_external\*) e sera removido no 4.6. Fora de teste seguimos incluindo-o enquanto
+// ele existir, que e o caminho de sempre nas duas versoes. Sob PHPUnit no 4.5 esse
+// include aborta o teste (require_phpunit_isolation()), entao ali - e no 4.6, quando o
+// arquivo nao existir mais - resolvemos os nomes curtos pelas classes novas.
+// Os alias nao entram em runtime de proposito: o core do 4.5 nao inclui mais o
+// externallib.php, e um plugin legado que o incluisse depois de nos repetiria os
+// class_alias, gerando warning.
+if (!class_exists('external_api', false)) {
+    $wstccemteste = defined('PHPUNIT_TEST') && PHPUNIT_TEST;
+    if (file_exists($CFG->libdir."/externallib.php") && !$wstccemteste) {
+        require_once($CFG->libdir."/externallib.php");
+    } else {
+        foreach (array(
+            'external_api',
+            'external_description',
+            'external_value',
+            'external_single_structure',
+            'external_multiple_structure',
+            'external_function_parameters',
+        ) as $wstccshortname) {
+            class_alias('core_external\\' . $wstccshortname, $wstccshortname);
+        }
+        unset($wstccshortname);
+    }
+    unset($wstccemteste);
+}
 require_once($CFG->libdir."/gradelib.php");
 require_once($CFG->dirroot.'/mod/assign/locallib.php');
 require_once($CFG->dirroot."/local/tutores/lib.php");

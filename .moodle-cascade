@@ -1,0 +1,7 @@
+# Cascade de branches/mirrors deste projeto. Veja `moodle-cascade --help`.
+# Upstream unico no GitHub (UFSC/moodle-local-wstcc), alcancado por um so remote.
+remotes = origin
+
+# O branch padrao aqui ainda e `master` (os irmaos renomearam para `main`).
+# Enquanto nao for renomeado no GitHub, o alias da base da cadeia e o `master`.
+main_branch = master

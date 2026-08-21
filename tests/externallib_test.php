@@ -12,7 +12,7 @@ require_once($CFG->dirroot . '/webservice/tests/helpers.php');
 
 class local_wstcc_external_testcase extends externallib_advanced_testcase {
 
-    protected function setUp() {
+    protected function setUp(): void {
         global $CFG;
         require_once($CFG->dirroot . '/local/wstcc/externallib.php');
     }
