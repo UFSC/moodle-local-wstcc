@@ -491,6 +491,36 @@ class local_wstcc_external_testcase extends externallib_advanced_testcase {
     }
 
     /**
+     * O set_grade busca o item por itemname, mas gravava com itemnumber FIXO em
+     * 0: a nota lancada no "Eixo 1" (itemnumber 1) ia para a coluna principal da
+     * atividade, por cima da nota do TCC. Ver issue #44.
+     */
+    public function test_set_grade_grava_no_item_do_itemname() {
+        $this->resetAfterTest(true);
+
+        list($course, $lti, $grade_item) = $this->setup_lti_com_item();
+
+        $aluno = self::getDataGenerator()->create_user();
+        $this->getDataGenerator()->enrol_user($aluno->id, $course->id);
+
+        local_wstcc_external::set_grade_lti($course->id, $lti->id, $aluno->id, 85);
+        local_wstcc_external::create_grade_item($course->id, 'Eixo 1', $lti->id, 1, 0, 100);
+
+        $returnvalue = local_wstcc_external::set_grade($course->id, 'Eixo 1', $aluno->id, 20);
+        $returnvalue = external_api::clean_returnvalue(local_wstcc_external::set_grade_returns(), $returnvalue);
+        $this->assertTrue($returnvalue['success']);
+
+        // os 20 vao para o Eixo 1...
+        $eixo = grade_item::fetch(array('courseid' => $course->id, 'itemname' => 'Eixo 1'));
+        $nota_do_eixo = grade_grade::fetch(array('itemid' => $eixo->id, 'userid' => $aluno->id));
+        $this->assertEquals(20, $nota_do_eixo->finalgrade);
+
+        // ...e a nota do TCC, na coluna principal, continua 85
+        $nota_principal = grade_grade::fetch(array('itemid' => $grade_item->id, 'userid' => $aluno->id));
+        $this->assertEquals(85, $nota_principal->finalgrade);
+    }
+
+    /**
      * O create_grade_item deste plugin cria itens extras na MESMA iteminstance
      * (itemnumber 1..3, "Eixo 1/2/3"). Sem filtrar itemnumber, a leitura cairia
      * na coluna errada onde eles existem.
