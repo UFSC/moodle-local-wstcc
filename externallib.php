@@ -393,7 +393,12 @@ class local_wstcc_external extends external_api {
                 $grade_item->itemtype,
                 $grade_item->itemmodule,
                 $grade_item->iteminstance,
-                0,
+                // itemnumber DO ITEM ENCONTRADO, e nao 0 fixo: esta funcao busca
+                // por itemname, e o create_grade_item deste mesmo plugin cria
+                // itens extras na MESMA iteminstance com itemnumber 1..3
+                // ("Eixo 1/2/3"). Com o 0 fixo, lancar nota no "Eixo 1" gravava
+                // na coluna PRINCIPAL da atividade, por cima da nota do TCC.
+                $grade_item->itemnumber,
                 $grade_grade);
 
             if ($success === GRADE_UPDATE_FAILED) {
