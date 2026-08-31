@@ -51,9 +51,20 @@ class local_wstcc_external_testcase extends externallib_advanced_testcase {
         $user1 = self::getDataGenerator()->create_user(array('idnumber' => 'IDN-0001'));
         $user2 = self::getDataGenerator()->create_user(array('idnumber' => 'IDN-0002'));
 
-        $id1 = $DB->insert_record('user_info_field', array(
-            'shortname' => 'cpf', 'name' => 'CPF', 'categoryid' => 1,
-            'datatype' => 'text'));
+        // ⚠️ REUSA o campo se ele ja' existir. O auth_cas_ufsc cria o campo CPF na
+        // instalacao dele -- de forma idempotente, note bem --, entao o site de
+        // teste ja' vem com um. Inserir outro por cima criava DOIS campos com o
+        // mesmo shortname, estado que o Moodle permite (user_info_field nao tem
+        // indice unico) mas que nenhuma instalacao bem cuidada tem. A fixture deve
+        // montar o cenario normal; o cenario duplicado tem teste proprio, logo
+        // abaixo.
+        $id1 = $DB->get_field('user_info_field', 'id', array('shortname' => 'cpf'),
+                IGNORE_MULTIPLE);
+        if (!$id1) {
+            $id1 = $DB->insert_record('user_info_field', array(
+                'shortname' => 'cpf', 'name' => 'CPF', 'categoryid' => 1,
+                'datatype' => 'text'));
+        }
 
         $DB->insert_record('user_info_data', array(
             'userid' => $user1->id, 'fieldid' => $id1, 'data' => $cpf_test1,
