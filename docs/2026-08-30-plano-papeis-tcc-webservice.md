@@ -1286,14 +1286,28 @@ Esperado: `wstcc_webservice | local_wstcc | 14` (eram 12).
 
 ⚠️ Se o `component` vier vazio, **pare**: o serviço foi criado à mão e o upgrade não atualiza a lista de funções. O caminho é `UPDATE` na linha existente, **nunca** recriar o serviço — o token vive nele.
 
-- [ ] **Step 4: Prova por reversão**
+- [x] **Step 4: Prova por reversão** ✅ feita em 31/08
 
-Reverta uma peça e confirme que o teste correspondente fica vermelho pelo motivo certo. Faça pelo menos estas duas:
+1. `false` → `true` em `get_user_roles`: `test_a1_nao_enxerga_atribuicao_na_categoria`
+   falhou (`Failed asserting that two arrays are equal`);
+2. remoção da validação de `$categoria_turma`: `test_a2_curso_sem_turma_levanta_excecao_propria`
+   falhou recebendo `relationship_grupo_orientacao_not_available_error` onde esperava
+   `turma_ufsc_nao_encontrada` — a conflação, demonstrada.
 
-1. troque o `false` por `true` em `get_user_roles` → `test_a1_nao_enxerga_atribuicao_na_categoria` deve falhar;
-2. remova a validação de `$categoria_turma` da Task 4 → `test_a2_curso_sem_turma_levanta_excecao_propria` deve falhar.
+Desfaça as reversões depois. Teste que continua verde com a peça removida não testa a peça.
 
-Desfaça as duas reversões depois. Teste que continua verde com a peça removida não testa a peça.
+⚠️ **Vermelho não é prova — o vermelho tem que ser pelo motivo certo.** Na primeira
+tentativa da reversão 2 o recorte cortou o bloco no meio e deixou um `);` órfão. O teste
+ficou vermelho por **erro de sintaxe**, não pela peça removida. Uma reversão assim passa na
+conferência distraída e certifica uma cobertura que não existe.
+
+Rode `php -l` **antes e depois** de cada reversão, dentro do container (o host não tem PHP):
+
+```bash
+docker exec local-moodle-unasus-dev-405 php -l /var/www/local/wstcc/externallib.php
+```
+
+E leia a mensagem da falha: ela precisa citar a asserção do teste, não um erro de parse.
 
 - [ ] **Step 5: Commit e push**
 
