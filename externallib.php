@@ -1005,6 +1005,19 @@ class local_wstcc_external extends external_api {
                 array('courseid' => $courseid));
 
         $categoria_turma = \local_tutores\categoria::turma_ufsc($params['courseid']);
+
+        // ⚠️ get_relationship() interpola a categoria direto no SQL, sob um FIXME
+        // que diz isso. Com false, vira LIKE '%//%', nao casa com nada, e cai no
+        // MESMO throw de "relationship nao existe" -- foi assim que a #63
+        // (tutoria) ficou com a causa ambigua: "o curso nao pertence a turma
+        // nenhuma" e "a turma nao tem relationship de orientacao" chegavam com a
+        // mesma mensagem. Validar aqui separa os dois estados, que e' o que
+        // permite ao app nao rebaixar a pessoa para estudante em falha de leitura.
+        if (empty($categoria_turma)) {
+            throw new moodle_exception('turma_ufsc_nao_encontrada', 'local_wstcc', '', null,
+                    "Course: {$params['courseid']}");
+        }
+
         $relationship = local_tutores_grupo_orientacao::get_relationship_orientacao($categoria_turma);
 
         $cohorts = self::cohorts_por_papel($relationship->id);

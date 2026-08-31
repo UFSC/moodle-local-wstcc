@@ -281,4 +281,94 @@ class local_wstcc_papeis_testcase extends advanced_testcase {
         $this->assertEquals(array($t['users']['suporte_b']->id), $this->ids($b, 'suportes'));
         $this->assertEquals(array($t['users']['estudante_b']->id), $this->ids($b, 'estudantes'));
     }
+
+    public function test_a2_curso_sem_turma_levanta_excecao_propria() {
+        $this->resetAfterTest();
+        $this->configurar_papeis();
+
+        // Curso numa categoria sem nenhum relationship: turma_ufsc() da' false.
+        $categoria = $this->getDataGenerator()->create_category();
+        $curso = $this->getDataGenerator()->create_course(array('category' => $categoria->id));
+
+        try {
+            local_wstcc_external::get_grupos_orientacao($curso->id);
+            $this->fail('Deveria ter levantado moodle_exception.');
+        } catch (moodle_exception $e) {
+            // ⚠️ Tem que ser DISTINTA da de relationship ausente: o app usa o
+            // errorcode para nao rebaixar a pessoa para estudante nem reescrever
+            // o vinculo em falha de leitura.
+            $this->assertEquals('turma_ufsc_nao_encontrada', $e->errorcode);
+            $this->assertEquals('local_wstcc', $e->module);
+            $this->assertStringNotContainsString('[[', $e->getMessage());
+        }
+    }
+
+    public function test_a2_turma_sem_relationship_de_orientacao_levanta_a_excecao_do_tutores() {
+        $this->resetAfterTest();
+        $this->configurar_papeis();
+
+        // A turma EXISTE (ha' relationship com tag grupo_tutoria), mas nao ha'
+        // relationship de ORIENTACAO. E' o estado intermediario da #63.
+        $categoria = $this->getDataGenerator()->create_category();
+        $catcontext = context_coursecat::instance($categoria->id);
+        $curso = $this->getDataGenerator()->create_course(array('category' => $categoria->id));
+
+        relationship_add_relationship((object) array(
+                'contextid' => $catcontext->id,
+                'name' => 'Tutoria',
+                'tags' => array('grupo_tutoria'),
+        ));
+
+        try {
+            local_wstcc_external::get_grupos_orientacao($curso->id);
+            $this->fail('Deveria ter levantado moodle_exception.');
+        } catch (moodle_exception $e) {
+            $this->assertEquals('relationship_grupo_orientacao_not_available_error', $e->errorcode);
+            $this->assertStringNotContainsString('[[', $e->getMessage());
+        }
+    }
+
+    public function test_a2_relationship_sem_grupos_devolve_lista_vazia() {
+        $this->resetAfterTest();
+
+        // ⚠️ As configs precisam casar com os papeis dos cohorts criados abaixo.
+        // local_tutores le $CFG->local_tutores_student_roles direto (lib.php:39) e
+        // levanta "Undefined property" se ela nao existir.
+        set_config('local_tutores_student_roles', 'student');
+        set_config('local_tutores_orientador_roles', 'editingteacher');
+        set_config('local_wstcc_suporte_roles', 'suporteorientacao');
+        set_config('local_wstcc_coordtcc_roles', 'coordtcc');
+
+        $categoria = $this->getDataGenerator()->create_category();
+        $catcontext = context_coursecat::instance($categoria->id);
+        $curso = $this->getDataGenerator()->create_course(array('category' => $categoria->id));
+
+        $rid = relationship_add_relationship((object) array(
+                'contextid' => $catcontext->id,
+                'name' => 'Orientação vazia',
+                'tags' => array('grupo_orientacao'),
+        ));
+
+        // Cohorts de papel existem; o que nao ha' sao GRUPOS.
+        global $DB;
+        $gen = $this->getDataGenerator();
+        foreach (array('student', 'editingteacher') as $shortname) {
+            $cohort = $gen->create_cohort(array('contextid' => $catcontext->id));
+            relationship_add_cohort((object) array(
+                    'relationshipid' => $rid,
+                    'cohortid' => $cohort->id,
+                    'roleid' => $DB->get_field('role', 'id', array('shortname' => $shortname), MUST_EXIST),
+                    'allowdupsingroups' => 1, 'uniformdistribution' => 0));
+        }
+        $cohort = $gen->create_cohort(array('contextid' => $catcontext->id));
+        relationship_add_cohort((object) array(
+                'relationshipid' => $rid, 'cohortid' => $cohort->id,
+                'roleid' => $this->criar_papel('suporteorientacao'),
+                'allowdupsingroups' => 1, 'uniformdistribution' => 0));
+
+        $retorno = local_wstcc_external::get_grupos_orientacao($curso->id);
+
+        // Vazio LITERAL: "esta turma nao tem grupos". Nao e' erro.
+        $this->assertEquals(array(), $retorno['grupos']);
+    }
 }
