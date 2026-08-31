@@ -16,7 +16,7 @@
 // respondendo invalidrecord no webservice.
 // Mantido o formato de 12 digitos do valor anterior (201811090703): um numero
 // mais curto seria MENOR e o upgrade nunca rodaria.
-$plugin->version  = 202608201700;
+$plugin->version  = 202608310100;
 $plugin->cron     = false;
 $plugin->maturity = MATURITY_STABLE;
 $plugin->component = 'local_wstcc';

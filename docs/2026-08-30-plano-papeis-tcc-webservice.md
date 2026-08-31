@@ -45,6 +45,45 @@ docker exec -e XDEBUG_MODE=off local-moodle-unasus-dev-405 \
 
 ⚠️ Rodar por **caminho de arquivo** falha (`Class externallib_test could not be found`): o PHPUnit do 4.5 casa nome de classe com nome de arquivo, e as classes deste repositório são legadas. Use sempre `--testsuite`.
 
+⚠️ **Depois de subir `$plugin->version`, a suíte para de rodar** com *"Moodle PHPUnit
+environment was initialised for different version"*. Reinicialize antes de continuar
+(leva alguns minutos):
+
+```bash
+docker exec local-moodle-unasus-dev-405 \
+  bash -c "cd /var/www && php admin/tool/phpunit/cli/init.php"
+```
+
+Isso acontece nas Tasks 2 e 3, que sobem a versão. Rode os testes da tarefa **antes** do
+bump, e o `init.php` logo depois.
+
+⚠️⚠️ **E o `init.php` pode falhar pela metade**, com
+`Moodle PHPUnit environment configuration error: Can not install on non-test site!!`
+— foi o que aconteceu em 31/08. A causa: ele **derruba as tabelas antes de instalar**, e
+se a derrubada não termina, sobram tabelas `phpu_` sem a `config`; aí `is_test_site()`
+responde falso e ele se recusa a instalar. O ambiente fica **inutilizável até limpar**.
+
+Recuperação — apaga só o prefixo de teste (a instalação real aqui usa prefixo **vazio**):
+
+```bash
+# 1. o que sobrou
+docker exec docker-mysql80 mysql -uroot -p'#m00m00' -N -e "
+SELECT table_name FROM information_schema.tables
+ WHERE table_schema='moodle_405_unasus_local' AND table_name LIKE 'phpu\_%';"
+
+# 2. derruba o que sobrou (liste os nomes do passo 1 no DROP)
+docker exec docker-mysql80 mysql -uroot -p'#m00m00' -e "
+USE moodle_405_unasus_local; SET FOREIGN_KEY_CHECKS=0;
+DROP TABLE IF EXISTS <nomes do passo 1>;
+SET FOREIGN_KEY_CHECKS=1;"
+
+# 3. agora o init completa
+docker exec local-moodle-unasus-dev-405 bash -c "cd /var/www && php admin/tool/phpunit/cli/init.php"
+```
+
+⚠️ Confira que o `DROP` só cita nomes com o prefixo `phpu_`. A instalação real está no
+**mesmo banco**, com prefixo vazio.
+
 ---
 
 ## File Structure
@@ -337,6 +376,25 @@ Some à classe `local_wstcc_papeis_testcase` (e ao topo do arquivo, junto do out
 ```php
 require_once($CFG->dirroot . '/local/wstcc/externallib.php');
 ```
+
+⚠️ **Todo teste da A1 precisa definir as TRÊS configs**, não só a que está sob exame.
+`local_wstcc_mapa_papeis()` lê as três, e config vazia dispara `debugging()` — que estoura
+o `assertDebugging*` do próprio teste e esconde o aviso que ele quer observar. Medido em
+31/08: sem isto, 4 de 4 testes da A1 quebram com *"Unexpected debugging() call"*.
+
+```php
+    /**
+     * Define as TRES configs de papel. Ver o aviso acima.
+     */
+    protected function configurar_papeis() {
+        set_config('local_wstcc_coordtcc_roles', 'coordtcc');
+        set_config('local_wstcc_suporte_roles', 'suporteorientacao');
+        set_config('local_tutores_orientador_roles', 'orientador');
+    }
+```
+
+Nos quatro testes abaixo, use `$this->configurar_papeis();` no lugar dos `set_config`
+individuais.
 
 ```php
     /**

@@ -71,6 +71,13 @@ $functions = array(
                 'description' => 'Retorna a lista de estudantes de um curso específico.',
                 'type' => 'read',
         ),
+        'local_wstcc_get_papeis_tcc' => array(
+                'classname' => 'local_wstcc_external',
+                'methodname' => 'get_papeis_tcc',
+                'classpath' => 'local/wstcc/externallib.php',
+                'description' => 'Retorna os papéis de TCC do usuário no curso.',
+                'type' => 'read',
+        ),
         'local_wstcc_get_orientador_responsavel' => array(
                 'classname' => 'local_wstcc_external',
                 'methodname' => 'get_orientador_responsavel',
@@ -120,6 +127,7 @@ $services = array(
                         'local_wstcc_get_tutor_responsavel',
                         'local_wstcc_get_students_by_course',
                         'local_wstcc_get_orientador_responsavel',
+                        'local_wstcc_get_papeis_tcc',
                         'local_wstcc_set_grade',
                         'local_wstcc_set_grade_lti',
                         'local_wstcc_get_grades_lti',

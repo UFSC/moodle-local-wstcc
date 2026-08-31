@@ -911,4 +911,69 @@ class local_wstcc_external extends external_api {
 
         return $DB->get_records_sql($sql, array('courseid' => $courseid, 'contextlevel' => CONTEXT_COURSE));
     }
+
+    public static function get_papeis_tcc_parameters() {
+        $keys = array(
+                'userid' => new external_value(PARAM_INT, 'User id', VALUE_REQUIRED),
+                'courseid' => new external_value(PARAM_INT, 'Course id', VALUE_REQUIRED),
+        );
+
+        return new external_function_parameters($keys);
+    }
+
+    /**
+     * Devolve os papeis de TCC que a pessoa tem NESTE curso, em nome semantico.
+     *
+     * Existe porque o launch LTI do Moodle 4.5 nao carrega papel customizado:
+     * todos chegam como Learner, e a identidade tem que vir do dado.
+     */
+    public static function get_papeis_tcc($userid, $courseid) {
+        global $CFG;
+        require_once($CFG->dirroot . '/local/wstcc/locallib.php');
+
+        $params = self::validate_parameters(self::get_papeis_tcc_parameters(),
+                array('userid' => $userid, 'courseid' => $courseid));
+
+        $context = context_course::instance($params['courseid']);
+        $mapa = local_wstcc_mapa_papeis();
+
+        // ⚠️ false = SO' o contexto do curso. Os papeis de TCC sao atribuiveis
+        // tambem em categoria (contextlevel 40), e o modelo institucional e'
+        // turma = categoria -- entao quem cadastrar na categoria produz uma
+        // pessoa que entra como estudante, em silencio. Esta e' a decisao
+        // conservadora de 30/08; o desencontro e' denunciado no log abaixo.
+        $papeis = self::mapear_papeis(get_user_roles($context, $params['userid'], false), $mapa);
+
+        if (empty($papeis)) {
+            $acima = self::mapear_papeis(get_user_roles($context, $params['userid'], true), $mapa);
+            if (!empty($acima)) {
+                debugging("local_wstcc: usuario {$params['userid']} tem papel de TCC em contexto ACIMA "
+                        . "do curso {$params['courseid']} (" . implode(',', $acima) . "), e nao no curso. "
+                        . "Atribua no curso.", DEBUG_DEVELOPER);
+            }
+        }
+
+        return array('papeis' => $papeis);
+    }
+
+    /**
+     * Traduz registros de get_user_roles em nomes semanticos, sem repetir.
+     */
+    protected static function mapear_papeis($roles, $mapa) {
+        $papeis = array();
+        foreach ($roles as $role) {
+            if (isset($mapa[$role->shortname])) {
+                $papeis[$mapa[$role->shortname]] = true;
+            }
+        }
+        return array_keys($papeis);
+    }
+
+    public static function get_papeis_tcc_returns() {
+        return new external_single_structure(array(
+                'papeis' => new external_multiple_structure(
+                        new external_value(PARAM_ALPHAEXT, 'Papel semantico de TCC'),
+                        'Papeis de TCC no curso')
+        ), 'Papeis de TCC');
+    }
 }
