@@ -11,6 +11,11 @@ defined('MOODLE_INTERNAL') || die();
 global $CFG;
 require_once($CFG->dirroot . '/local/wstcc/locallib.php');
 require_once($CFG->dirroot . '/local/wstcc/externallib.php');
+// tag/lib.php antes do lib.php do relationship: relationship_add_relationship()
+// chama tag_set().
+require_once($CFG->dirroot . '/tag/lib.php');
+require_once($CFG->dirroot . '/local/relationship/lib.php');
+require_once($CFG->dirroot . '/local/tutores/lib.php');
 
 class local_wstcc_papeis_testcase extends advanced_testcase {
 
@@ -147,5 +152,133 @@ class local_wstcc_papeis_testcase extends advanced_testcase {
 
         $this->assertEquals(array(), $retorno['papeis']);
         $this->assertDebuggingNotCalled();
+    }
+
+    /**
+     * Monta uma turma de orientacao completa e devolve os ids uteis.
+     *
+     * ⚠️ FIXTURE OBRIGATORIA: o orientador A esta em DOIS grupos, com suportes
+     * distintos. Os dados do ambiente real nao exercitam esse caso (cada
+     * orientador esta em exatamente um grupo), e e' exatamente o caso que o
+     * retorno com estudantes existe para acertar: sem eles, os TCCs do
+     * orientador receberiam os suportes dos DOIS grupos.
+     */
+    protected function montar_turma() {
+        global $DB;
+
+        $gen = $this->getDataGenerator();
+
+        $studentroleid = $DB->get_field('role', 'id', array('shortname' => 'student'), MUST_EXIST);
+        $orientadorroleid = $DB->get_field('role', 'id', array('shortname' => 'editingteacher'), MUST_EXIST);
+        $suporteroleid = $this->criar_papel('suporteorientacao');
+
+        set_config('local_tutores_student_roles', 'student');
+        set_config('local_tutores_orientador_roles', 'editingteacher');
+        set_config('local_wstcc_suporte_roles', 'suporteorientacao');
+        set_config('local_wstcc_coordtcc_roles', 'coordtcc');
+
+        $categoria = $gen->create_category();
+        $catcontext = context_coursecat::instance($categoria->id);
+        $curso = $gen->create_course(array('category' => $categoria->id));
+
+        $relationshipid = relationship_add_relationship((object) array(
+                'contextid' => $catcontext->id,
+                'name' => 'Grupos de Orientação',
+                'tags' => array('grupo_orientacao'),
+        ));
+
+        $cohorts = array();
+        foreach (array('estudante' => $studentroleid,
+                       'orientador' => $orientadorroleid,
+                       'suporte' => $suporteroleid) as $papel => $roleid) {
+            $cohort = $gen->create_cohort(array('contextid' => $catcontext->id));
+            $cohorts[$papel] = relationship_add_cohort((object) array(
+                    'relationshipid' => $relationshipid,
+                    'cohortid' => $cohort->id,
+                    'roleid' => $roleid,
+                    // 1 porque o suporte apoia varios grupos: com o default 0 o
+                    // seletor deixa de oferecer a pessoa depois do primeiro.
+                    'allowdupsingroups' => 1,
+                    'uniformdistribution' => 0,
+            ));
+        }
+
+        $grupos = array();
+        foreach (array('A', 'B') as $letra) {
+            $grupos[$letra] = relationship_add_group((object) array(
+                    'relationshipid' => $relationshipid, 'name' => "Grupo {$letra}",
+                    'userlimit' => 0, 'uniformdistribution' => 0));
+        }
+
+        $u = array();
+        foreach (array('orientador_ab', 'suporte_a', 'suporte_a2', 'suporte_b',
+                       'estudante_a', 'estudante_b') as $nome) {
+            $u[$nome] = $gen->create_user(array('firstname' => $nome));
+        }
+
+        // O MESMO orientador nos dois grupos -- o caso que os dados reais nao tem.
+        relationship_add_member($grupos['A'], $cohorts['orientador'], $u['orientador_ab']->id);
+        relationship_add_member($grupos['B'], $cohorts['orientador'], $u['orientador_ab']->id);
+
+        relationship_add_member($grupos['A'], $cohorts['suporte'], $u['suporte_a']->id);
+        relationship_add_member($grupos['A'], $cohorts['suporte'], $u['suporte_a2']->id);
+        relationship_add_member($grupos['B'], $cohorts['suporte'], $u['suporte_b']->id);
+
+        relationship_add_member($grupos['A'], $cohorts['estudante'], $u['estudante_a']->id);
+        relationship_add_member($grupos['B'], $cohorts['estudante'], $u['estudante_b']->id);
+
+        // Papel no curso para quem tem papel de grupo: e' o cadastro real, e o
+        // que evita o log de desencontro.
+        $ctx = context_course::instance($curso->id)->id;
+        role_assign($suporteroleid, $u['suporte_a']->id, $ctx);
+        role_assign($suporteroleid, $u['suporte_a2']->id, $ctx);
+        role_assign($suporteroleid, $u['suporte_b']->id, $ctx);
+
+        return array('courseid' => $curso->id, 'grupos' => $grupos, 'users' => $u);
+    }
+
+    /** Extrai os userid de uma das listas de um grupo do retorno. */
+    protected function ids($grupo, $chave) {
+        $ids = array();
+        foreach ($grupo[$chave] as $membro) {
+            $ids[] = $membro['userid'];
+        }
+        sort($ids);
+        return $ids;
+    }
+
+    public function test_a2_devolve_grupos_com_membros_rotulados_por_papel() {
+        $this->resetAfterTest();
+
+        $t = $this->montar_turma();
+
+        $retorno = local_wstcc_external::get_grupos_orientacao($t['courseid']);
+        $retorno = external_api::clean_returnvalue(
+                local_wstcc_external::get_grupos_orientacao_returns(), $retorno);
+
+        $this->assertCount(2, $retorno['grupos']);
+
+        $porid = array();
+        foreach ($retorno['grupos'] as $grupo) {
+            $porid[$grupo['id']] = $grupo;
+        }
+
+        $a = $porid[$t['grupos']['A']];
+        $b = $porid[$t['grupos']['B']];
+
+        $this->assertEquals('Grupo A', $a['nome']);
+        $this->assertEquals(array($t['users']['orientador_ab']->id), $this->ids($a, 'orientadores'));
+        $this->assertEquals(array($t['users']['estudante_a']->id), $this->ids($a, 'estudantes'));
+
+        $esperado = array($t['users']['suporte_a']->id, $t['users']['suporte_a2']->id);
+        sort($esperado);
+        $this->assertEquals($esperado, $this->ids($a, 'suportes'));
+
+        // ⚠️ O CASO QUE OS DADOS REAIS NAO TEM: o mesmo orientador esta nos dois
+        // grupos, e o suporte do grupo B NAO pode aparecer no grupo A. Se esta
+        // assercao cair, o suporte ganha acesso a aluno que nao acompanha.
+        $this->assertNotContains($t['users']['suporte_b']->id, $this->ids($a, 'suportes'));
+        $this->assertEquals(array($t['users']['suporte_b']->id), $this->ids($b, 'suportes'));
+        $this->assertEquals(array($t['users']['estudante_b']->id), $this->ids($b, 'estudantes'));
     }
 }

@@ -78,6 +78,13 @@ $functions = array(
                 'description' => 'Retorna os papéis de TCC do usuário no curso.',
                 'type' => 'read',
         ),
+        'local_wstcc_get_grupos_orientacao' => array(
+                'classname' => 'local_wstcc_external',
+                'methodname' => 'get_grupos_orientacao',
+                'classpath' => 'local/wstcc/externallib.php',
+                'description' => 'Retorna os grupos de orientação da turma com orientadores, suportes e estudantes.',
+                'type' => 'read',
+        ),
         'local_wstcc_get_orientador_responsavel' => array(
                 'classname' => 'local_wstcc_external',
                 'methodname' => 'get_orientador_responsavel',
@@ -128,6 +135,7 @@ $services = array(
                         'local_wstcc_get_students_by_course',
                         'local_wstcc_get_orientador_responsavel',
                         'local_wstcc_get_papeis_tcc',
+                        'local_wstcc_get_grupos_orientacao',
                         'local_wstcc_set_grade',
                         'local_wstcc_set_grade_lti',
                         'local_wstcc_get_grades_lti',

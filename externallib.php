@@ -976,4 +976,130 @@ class local_wstcc_external extends external_api {
                         'Papeis de TCC no curso')
         ), 'Papeis de TCC');
     }
+
+    public static function get_grupos_orientacao_parameters() {
+        $keys = array(
+                'courseid' => new external_value(PARAM_INT, 'Course id', VALUE_REQUIRED),
+        );
+
+        return new external_function_parameters($keys);
+    }
+
+    /**
+     * Devolve os grupos de orientacao da turma, com os membros rotulados.
+     *
+     * ⚠️ Uma chamada POR TURMA. O SyncTcc ja' faz uma chamada por aluno para o
+     * orientador; perguntar o suporte por aluno dobraria o custo do sync. Como o
+     * suporte e' do GRUPO, uma chamada devolve tudo e o app distribui.
+     *
+     * ⚠️ NAO reusa get_grupos_orientacao_by_userid(): o ramo com lista chama
+     * report_unasus_int_array_to_sql(), do report_unasus, que nao esta instalado
+     * nesta arvore -- e o plugin nem carrega no 4.5 (ver o design do porte). Aqui
+     * o IN sai do get_in_or_equal, padrao do proprio lib.php.
+     */
+    public static function get_grupos_orientacao($courseid) {
+        global $CFG, $DB;
+        require_once($CFG->dirroot . '/local/wstcc/locallib.php');
+
+        $params = self::validate_parameters(self::get_grupos_orientacao_parameters(),
+                array('courseid' => $courseid));
+
+        $categoria_turma = \local_tutores\categoria::turma_ufsc($params['courseid']);
+        $relationship = local_tutores_grupo_orientacao::get_relationship_orientacao($categoria_turma);
+
+        $cohorts = self::cohorts_por_papel($relationship->id);
+
+        $sql = "SELECT rg.id AS grupoid, rg.name AS nome, rm.userid, rm.relationshipcohortid
+                  FROM {relationship_groups} rg
+             LEFT JOIN {relationship_members} rm
+                    ON (rm.relationshipgroupid = rg.id)
+                 WHERE rg.relationshipid = :relationshipid
+              ORDER BY rg.name, rm.userid";
+
+        $linhas = $DB->get_recordset_sql($sql, array('relationshipid' => $relationship->id));
+
+        $grupos = array();
+        foreach ($linhas as $linha) {
+            if (!isset($grupos[$linha->grupoid])) {
+                $grupos[$linha->grupoid] = array(
+                        'id' => (int) $linha->grupoid,
+                        'nome' => $linha->nome,
+                        'orientadores' => array(),
+                        'suportes' => array(),
+                        'estudantes' => array(),
+                );
+            }
+            if (empty($linha->userid) || !isset($cohorts[$linha->relationshipcohortid])) {
+                continue;
+            }
+            $chave = $cohorts[$linha->relationshipcohortid];
+            $grupos[$linha->grupoid][$chave][] = array('userid' => (int) $linha->userid);
+        }
+        $linhas->close();
+
+        return array('grupos' => array_values($grupos));
+    }
+
+    /**
+     * Mapa relationship_cohorts.id => chave da lista no retorno.
+     */
+    protected static function cohorts_por_papel($relationshipid) {
+        $mapa = array();
+
+        $conjuntos = array(
+                'estudantes' => local_tutores_base_group::get_relationship_cohorts_estudantes($relationshipid),
+                'orientadores' => local_tutores_grupo_orientacao::get_relationship_cohorts_orientadores($relationshipid),
+                'suportes' => self::relationship_cohorts_suportes($relationshipid),
+        );
+
+        foreach ($conjuntos as $chave => $cohorts) {
+            foreach (array_keys($cohorts) as $rcid) {
+                $mapa[$rcid] = $chave;
+            }
+        }
+
+        return $mapa;
+    }
+
+    /**
+     * Cohorts do papel de suporte no relationship.
+     *
+     * ⚠️ Vive aqui, e nao em local_tutores_orientador_roles: incluir o suporte
+     * naquela config o faria ser devolvido como orientador RESPONSAVEL do aluno,
+     * corrompendo o vinculo gravado pelo SyncTcc.
+     */
+    protected static function relationship_cohorts_suportes($relationshipid) {
+        global $CFG, $DB;
+        require_once($CFG->dirroot . '/local/wstcc/locallib.php');
+
+        $shortnames = local_wstcc_papeis_configurados('local_wstcc_suporte_roles', 'suporteorientacao');
+        list($in, $inparams) = $DB->get_in_or_equal($shortnames, SQL_PARAMS_NAMED, 'shortname');
+
+        $sql = "SELECT rc.*
+                  FROM {relationship_cohorts} rc
+                  JOIN {role} r ON (r.id = rc.roleid)
+                 WHERE rc.relationshipid = :relationshipid
+                   AND r.shortname {$in}";
+
+        return $DB->get_records_sql($sql,
+                array_merge($inparams, array('relationshipid' => $relationshipid)));
+    }
+
+    public static function get_grupos_orientacao_returns() {
+        $membro = new external_single_structure(array(
+                'userid' => new external_value(PARAM_INT, 'Moodle user id'),
+        ));
+
+        return new external_single_structure(array(
+                'grupos' => new external_multiple_structure(
+                        new external_single_structure(array(
+                                'id' => new external_value(PARAM_INT, 'Id do grupo'),
+                                'nome' => new external_value(PARAM_TEXT, 'Nome do grupo'),
+                                'orientadores' => new external_multiple_structure($membro),
+                                'suportes' => new external_multiple_structure($membro),
+                                'estudantes' => new external_multiple_structure($membro),
+                        )),
+                        'Grupos de orientacao da turma')
+        ), 'Grupos de orientacao');
+    }
 }
