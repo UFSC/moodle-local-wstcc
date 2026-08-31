@@ -23,3 +23,11 @@
  */
 
 $string['pluginname'] = 'Web service TCC';
+
+$string['papeis_tcc'] = 'Papéis de TCC';
+$string['papeis_tcc_settings'] = 'Papéis de TCC';
+$string['settings_coordtcc_roles'] = 'Papéis do Coordenador de TCC';
+$string['description_coordtcc_roles'] = 'Papéis do Moodle que identificam o Coordenador de TCC. Atribuídos no CURSO — atribuição na categoria não é reconhecida.';
+$string['settings_suporte_roles'] = 'Papéis do Suporte de Orientação';
+$string['description_suporte_roles'] = 'Papéis do Moodle que identificam o Suporte de Orientação. O alcance vem dos grupos do relacionamento de orientação.';
+$string['turma_ufsc_nao_encontrada'] = 'Não foi possível resolver a turma a partir deste curso.';

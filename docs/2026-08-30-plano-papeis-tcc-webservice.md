@@ -267,14 +267,46 @@ $string['description_suporte_roles'] = 'Papéis do Moodle que identificam o Supo
 $string['turma_ufsc_nao_encontrada'] = 'Não foi possível resolver a turma a partir deste curso.';
 ```
 
-- [ ] **Step 6: Verificar que a tela carrega**
+- [ ] **Step 6: Verificar que a tela carrega de verdade**
+
+⚠️ **`admin/cli/upgrade.php` NÃO serve aqui.** Esta tarefa não muda a versão do plugin,
+então o upgrade é no-op e **não avalia o `settings.php`** — um erro de sintaxe ou uma
+string faltando passariam despercebidos. Verificação executada em 31/08, que pega os dois:
 
 ```bash
-docker exec local-moodle-unasus-dev-405 \
-  bash -c "cd /var/www && php admin/cli/upgrade.php --non-interactive"
+cat > /var/www/local/wstcc/verifica_settings.php <<'EOF'
+<?php
+define('CLI_SCRIPT', true);
+require(__DIR__.'/../../config.php');
+require_once($CFG->libdir.'/adminlib.php');
+// ⚠️ Sem isto, $hassiteconfig e' falso em CLI e o settings.php nem e' avaliado.
+\core\session\manager::set_user(get_admin());
+$root = admin_get_root(true, true);
+$pagina = $root->locate('papeis_tcc_settings');
+echo "pagina: ", $pagina->visiblename, "\n";
+foreach ($pagina->settings as $s) {
+    echo "  ", $s->name, " -> ", $s->visiblename, "\n";
+}
+echo "categoria: ", $root->locate('papeistcc')->visiblename, "\n";
+EOF
+docker exec local-moodle-unasus-dev-405 php /var/www/local/wstcc/verifica_settings.php
+rm -f /var/www/local/wstcc/verifica_settings.php
 ```
 
-Esperado: termina sem erro. A tela aparece em *Administração do site → Usuários → Papéis de TCC*.
+Esperado, **com os nomes traduzidos e sem `[[`**:
+
+```
+pagina: Papéis de TCC
+  local_wstcc_coordtcc_roles -> Papéis do Coordenador de TCC
+  local_wstcc_suporte_roles -> Papéis do Suporte de Orientação
+categoria: Papéis de TCC
+```
+
+⚠️ Se sair `[[papeis_tcc_settings]]`, são as strings em cache — purgue e repita:
+
+```bash
+docker exec local-moodle-unasus-dev-405 bash -c "cd /var/www && php admin/cli/purge_caches.php"
+```
 
 - [ ] **Step 7: Commit**
 
