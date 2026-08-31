@@ -288,13 +288,17 @@ class local_wstcc_external extends external_api {
                   FROM {user} u
                   LEFT JOIN {user_info_data} ud
                     ON (ud.userid = u.id)
-                   -- ⚠️ IN, e nao =. O core NAO garante unicidade de shortname em
-                   -- user_info_field (a tabela nao declara indice no install.xml),
-                   -- e duas instalacoes reais chegam a dois campos 'cpf': o
-                   -- auth_cas_ufsc cria o dele na instalacao, e restaurar dump ou
-                   -- criar pela interface produz o segundo. Com '=', a subconsulta
-                   -- devolvia duas linhas e o MySQL derrubava a chamada inteira --
-                   -- levando junto o SyncPerson do sistema de TCC.
+                   -- ⚠️ IN, e nao =. Com '=', a subconsulta devolvia duas linhas se
+                   -- houvesse dois campos com shortname 'cpf', e o MySQL derrubava a
+                   -- chamada INTEIRA -- levando junto o SyncPerson do sistema de TCC.
+                   --
+                   -- Isso e' blindagem, nao conserto de defeito ativo: medido em
+                   -- 31/08, os ambientes tem UM campo cada. E o estado duplicado e'
+                   -- improvavel -- a tela de campos de perfil valida a unicidade
+                   -- (user/profile/definelib.php). Mas a validacao vive no
+                   -- FORMULARIO: user_info_field nao tem indice unico, entao INSERT
+                   -- direto, restauracao de dump ou um plugin menos cuidadoso ainda
+                   -- produzem o estado que derrubava tudo.
                    AND (ud.fieldid IN (SELECT uif.id
                                          FROM {user_info_field} uif
                                         WHERE uif.shortname = 'cpf'
