@@ -7,6 +7,50 @@
 > **Plugin:** `local_wstcc`, branch `MOODLE_405_STABLE`.
 > **Data:** 2026-08-30. **Relacionadas:** #16, #45, #46, #49, #63, #34.
 
+## Estado: ✅ ENTREGUE (2026-08-31)
+
+Tudo o que este documento especifica está implementado, testado e publicado em
+`MOODLE_405_STABLE`. Plano de execução: `2026-08-30-plano-papeis-tcc-webservice.md`.
+
+| item | estado |
+|---|---|
+| A1 `get_papeis_tcc` | ✅ `54dd219` |
+| A2 `get_grupos_orientacao` | ✅ `b0ef38b` |
+| A2 — três estados (erro × vazio) | ✅ `0fd4334` |
+| A2 — log do suporte sem papel no curso | ✅ `60f0a2b` |
+| B — as duas configurações, com default em runtime | ✅ `99ec19d` |
+| Publicação no serviço (14 funções) | ✅ conferido no banco |
+| Check de estado do mapa de papéis | ✅ `314c033` — **não estava neste desenho**, ver abaixo |
+
+Suíte do `local_wstcc`: **32 testes, 0 falhas**. Suíte do `local_tutores`: 57, 0 falhas.
+
+**Provado pelo endpoint REST**, não só por teste — `A1` devolvendo `{"papeis":["orientador"]}`
+e `{"papeis":[]}`, `A2` devolvendo os grupos da turma, e curso sem turma devolvendo
+`{"errorcode":"turma_ufsc_nao_encontrada", ...}`. O dado real exercita o suporte em dois
+grupos (`userid: 10`), que é o caso que motivou o retorno com estudantes.
+
+### O que mudou em relação a este desenho
+
+**Somado — check de estado.** O `debugging()` previsto na *Observabilidade* só produz saída
+com depuração de desenvolvedor ligada: em produção é no-op. Um aviso que só existe em
+desenvolvimento é pior que nenhum. O estado passou a ser **consultável** por
+`\local_wstcc\check\papeis` (Administração do site → Relatórios), com `WARNING` quando
+nenhum papel existente responde por um semântico — caso que o default não cobre.
+
+**Resolvido — o `false` do `get_user_roles` fica.** A coordenação decidiu que os
+coordenadores serão **participantes do curso**, então a atribuição nasce no contexto certo
+e o "plano B" do contexto 40 × 50 não precisa ser acionado.
+
+**Consertos que apareceram ao executar**, fora do escopo original:
+
+- `local_tutores`: exceções de cohort ausente saíam como `[[string]]` (componente
+  `report_unasus`, plugin ausente nas árvores 4.x) — corrigido e backportado nas 4 branches;
+- `local_tutores`: `turma_ufsc()` **estourava** (`IN ()`, erro de sintaxe) para curso do
+  site e curso inexistente, em vez de devolver `false` — achado pela equipe do TCC ao
+  chamar a A2, corrigido e backportado;
+- `local_wstcc`: `get_users_by_field` caía com dois campos de perfil `cpf` — blindagem
+  aplicada no 4.5 e na linha 3.0, que é onde o `SyncPerson` roda hoje.
+
 ## Objetivo
 
 Permitir que a ferramenta de TCC identifique dois papéis novos — **Coordenador de
