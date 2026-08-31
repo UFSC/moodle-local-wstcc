@@ -17,7 +17,7 @@ require_once($CFG->dirroot . '/tag/lib.php');
 require_once($CFG->dirroot . '/local/relationship/lib.php');
 require_once($CFG->dirroot . '/local/tutores/lib.php');
 
-class local_wstcc_papeis_testcase extends advanced_testcase {
+class papeis_test extends advanced_testcase {
 
     public function test_config_vazia_cai_no_default_e_avisa() {
         $this->resetAfterTest();

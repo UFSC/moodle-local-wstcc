@@ -8,7 +8,7 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-class local_wstcc_check_papeis_testcase extends advanced_testcase {
+class check_papeis_test extends advanced_testcase {
 
     /** Cria um papel com o shortname pedido, atribuivel em curso. */
     protected function criar_papel($shortname) {

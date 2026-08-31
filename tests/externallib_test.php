@@ -10,7 +10,7 @@ global $CFG;
 
 require_once($CFG->dirroot . '/webservice/tests/helpers.php');
 
-class local_wstcc_external_testcase extends externallib_advanced_testcase {
+class externallib_test extends externallib_advanced_testcase {
 
     protected function setUp(): void {
         global $CFG;
