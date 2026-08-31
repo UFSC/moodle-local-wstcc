@@ -11,6 +11,15 @@ defined('MOODLE_INTERNAL') || die();
 /**
  * Le uma config de papeis, caindo no default quando ela vier vazia.
  *
+ * ⚠️ LICAO MAIS AMPLA QUE ESTE CASO: debugging() NAO E' LOG, e' ferramenta de
+ * desenvolvimento. Ele so' produz saida com depuracao de desenvolvedor ligada; em
+ * producao e' no-op. Onde a informacao precisa sobreviver a producao, ele nao
+ * serve -- e um aviso que so' existe em desenvolvimento e' pior que nenhum, porque
+ * cria a sensacao de rede de protecao onde nao ha'. O estado real do mapa de
+ * papeis e' consultavel em Administracao do site > Relatorios > Verificacoes de
+ * estado (\local_wstcc\check\papeis); o debugging() abaixo fica so' para quem
+ * desenvolve.
+ *
  * ⚠️ O default vive AQUI, e nao so' na definicao do settings.php. No Moodle o
  * default de um admin_setting so' e' gravado no install/upgrade: uma restauracao
  * de dump que apague a linha da config NAO o repoe. Neste projeto restaurar dump

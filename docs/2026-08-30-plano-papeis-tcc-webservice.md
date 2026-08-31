@@ -614,6 +614,47 @@ git commit -m "feat(papeis): get_papeis_tcc devolve papel semantico do curso"
 
 ---
 
+## Task 2b: Check de estado do mapa de papéis ✅ ENTREGUE
+
+**Não estava no plano original.** Entrou depois que a execução da Task 2 mostrou que o
+`debugging()` pedido pela equipe do TCC **não aparece em produção** — ele só produz saída
+com depuração de desenvolvedor ligada. Um aviso que só existe em desenvolvimento é pior
+que nenhum: cria a sensação de rede de proteção onde não há.
+
+Log por chamada foi descartado pelo motivo oposto: `local_wstcc_mapa_papeis()` lê as três
+configs, então uma instalação que use só o coordenador dispararia a linha em **toda**
+requisição — e linha que sempre aparece deixa de ser lida. É o defeito que a #63 registrou
+no relatório do sync.
+
+**Solução: estado consultável, não anunciado.** `\local_wstcc\check\papeis`, na API de
+checks do 4.x, visível em *Administração do site → Relatórios → Verificações de estado*.
+
+**Files:**
+- Create: `local/wstcc/classes/check/papeis.php`, `local/wstcc/lib.php`, `local/wstcc/tests/check_papeis_test.php`
+- Modify: `local/wstcc/lang/en/local_wstcc.php` (6 strings), `local/wstcc/locallib.php` (a lição)
+
+Três estados, e o terceiro é o que justifica o check:
+
+| situação | resultado |
+|---|---|
+| as três configs preenchidas, papéis existem | `OK` |
+| alguma config em branco (default responde) | `INFO` |
+| **nenhum papel existente responde por um semântico** | `WARNING` |
+
+⚠️ O check lê pela **mesma** rotina do web service (`local_wstcc_papeis_configurados()`).
+Se as duas divergissem, ele descreveria um mapa que não é o aplicado. O efeito colateral é
+que herda o `debugging()` dela — por isso o teste do caso `INFO` afirma
+`assertDebuggingCalledCount(3)`.
+
+⚠️ **Armadilha de namespace:** dentro de `namespace local_wstcc\check`, `html_writer`
+resolve para `local_wstcc\check\html_writer`. Precisa de `\html_writer::`. Funções
+soltas como `s()` caem no global e não precisam.
+
+Verificado em execução: `status: ok`, com o detalhe listando os três semânticos e seus
+shortnames.
+
+---
+
 ## Task 3: A2 — grupos de orientação da turma
 
 **Files:**
