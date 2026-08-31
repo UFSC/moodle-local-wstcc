@@ -51,9 +51,20 @@ class local_wstcc_external_testcase extends externallib_advanced_testcase {
         $user1 = self::getDataGenerator()->create_user(array('idnumber' => 'IDN-0001'));
         $user2 = self::getDataGenerator()->create_user(array('idnumber' => 'IDN-0002'));
 
-        $id1 = $DB->insert_record('user_info_field', array(
-            'shortname' => 'cpf', 'name' => 'CPF', 'categoryid' => 1,
-            'datatype' => 'text'));
+        // ⚠️ REUSA o campo se ele ja' existir. O auth_cas_ufsc cria o campo CPF na
+        // instalacao dele -- de forma idempotente, note bem --, entao o site de
+        // teste ja' vem com um. Inserir outro por cima criava DOIS campos com o
+        // mesmo shortname, estado que o Moodle permite (user_info_field nao tem
+        // indice unico) mas que nenhuma instalacao bem cuidada tem. A fixture deve
+        // montar o cenario normal; o cenario duplicado tem teste proprio, logo
+        // abaixo.
+        $id1 = $DB->get_field('user_info_field', 'id', array('shortname' => 'cpf'),
+                IGNORE_MULTIPLE);
+        if (!$id1) {
+            $id1 = $DB->insert_record('user_info_field', array(
+                'shortname' => 'cpf', 'name' => 'CPF', 'categoryid' => 1,
+                'datatype' => 'text'));
+        }
 
         $DB->insert_record('user_info_data', array(
             'userid' => $user1->id, 'fieldid' => $id1, 'data' => $cpf_test1,
@@ -133,6 +144,47 @@ class local_wstcc_external_testcase extends externallib_advanced_testcase {
     }
 
 
+
+    /**
+     * ⚠️ DOIS campos de perfil com shortname 'cpf' na mesma instalacao.
+     *
+     * Nao e' cenario de laboratorio: o auth_cas_ufsc cria o campo CPF na
+     * instalacao dele, e quem criar outro pela interface -- ou restaurar um dump
+     * que ja' o tenha -- fica com dois. O core NAO garante unicidade: a tabela
+     * user_info_field nao declara indice nenhum no install.xml.
+     *
+     * Com a subconsulta escalar que existia aqui, isso derrubava o web service
+     * inteiro com "Subquery returns more than 1 row" -- e o get_users_by_field e'
+     * consumido pelo SyncPerson do sistema de TCC.
+     */
+    public function test_get_users_by_field_com_campo_cpf_duplicado() {
+        global $DB;
+        $this->resetAfterTest(true);
+
+        $cpf = '99999999977';
+        $user = self::getDataGenerator()->create_user(array('idnumber' => 'IDN-DUP'));
+
+        // O primeiro campo pode ja' existir (auth_cas_ufsc); garantimos DOIS.
+        $DB->insert_record('user_info_field', array(
+            'shortname' => 'cpf', 'name' => 'CPF', 'categoryid' => 1, 'datatype' => 'text'));
+        $segundo = $DB->insert_record('user_info_field', array(
+            'shortname' => 'cpf', 'name' => 'CPF (duplicado)', 'categoryid' => 1,
+            'datatype' => 'text'));
+
+        $this->assertGreaterThan(1, $DB->count_records('user_info_field',
+                array('shortname' => 'cpf')), 'O cenario exige mais de um campo cpf.');
+
+        $DB->insert_record('user_info_data', array(
+            'userid' => $user->id, 'fieldid' => $segundo, 'data' => $cpf, 'dataformat' => 0));
+
+        $retorno = local_wstcc_external::get_users_by_field('cpf', $cpf);
+        $retorno = external_api::clean_returnvalue(
+                local_wstcc_external::get_users_by_field_returns(), $retorno);
+
+        $this->assertCount(1, $retorno);
+        $this->assertEquals($cpf, $retorno[0]['cpf']);
+        $this->assertEquals($user->id, $retorno[0]['id']);
+    }
 
     public function test_get_user_online_text_submission() {
         global $DB;
