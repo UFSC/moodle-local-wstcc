@@ -21,15 +21,27 @@
 - Mensagens de commit **sem** trailer `Co-Authored-By`.
 - Cada tarefa que mexe em `db/services.php` **sobe `$plugin->version`** em `version.php` (formato `YYYYMMDDXX`; hoje `202608201700`).
 
-### Baseline: a suíte NÃO está verde antes de você começar
+### Baseline: a suíte está VERDE ✅ (desde 31/08)
+
+Qualquer falha que você vir é sua. Não existe mais erro esperado nesta suíte.
+
+O plano nasceu dizendo o contrário — havia um erro tido como pré-existente e sem relação
+com este trabalho:
 
 ```
-Tests: 15, Assertions: 45, Errors: 1.
 1) local_wstcc_external_testcase::test_get_users_by_field
    dml_read_exception: Subquery returns more than 1 row
 ```
 
-Esse erro é **pré-existente** e não tem relação com este trabalho. Não conserte, não contorne, não deixe que ele confunda a leitura dos seus resultados: conte os testes novos.
+⚠️ **Era defeito de produção, não fixture ruim.** `get_users_by_field` resolvia o
+`fieldid` do CPF por subconsulta **escalar**, e o core não garante unicidade de
+`shortname` em `user_info_field` (a tabela não declara índice no `install.xml`). Duas
+instalações reais chegam a dois campos `cpf` — o `auth_cas_ufsc` cria o dele na
+instalação, e restaurar dump ou criar pela interface produz o segundo. Com dois, o MySQL
+recusava a chamada inteira, derrubando junto o `SyncPerson` do sistema de TCC.
+
+Corrigido em `f9a5e10` trocando `=` por `IN`. O teste antigo **não foi alterado** e passou
+a passar sozinho — que é a prova de que a causa era o código.
 
 ### Comandos
 
