@@ -334,6 +334,32 @@ Três linhas de log, todas de graça no request que já acontece:
 | serviço `wstcc_webservice` | `component = 'local_wstcc'`, 12 funções, 1 token |
 | Relationship de tutoria | **inexistente** (só a tag `grupo_orientacao`) — ausência genuína, ver #63 |
 
+## Fronteira de segurança: hoje é só o token
+
+⚠️ **Nenhuma das 14 funções do `local_wstcc` chama `validate_context()` ou
+`require_capability()`** — as duas novas inclusive. Medido em 31/08 (a contagem no arquivo
+inteiro é zero). As funções aqui seguiram o padrão das 12 existentes; consistente com o
+arquivo, e ainda assim uma lacuna.
+
+Consequência prática: **o token é a única fronteira do web service.** Quem tem o token lê
+qualquer curso, porque as funções não verificam nada além dos tipos dos parâmetros
+(`validate_parameters`).
+
+⚠️ **E isso acopla duas coisas que pareciam separadas.** O token do `unasus-dev` pertence ao
+Administrador, sem restrição de IP e sem validade, e a recomendação natural seria trocá-lo
+por uma conta de serviço com as capabilities mínimas do `README`. **Essa troca, sozinha, não
+restringiria nada:** a conta mínima leria qualquer curso do mesmo jeito. A troca só entrega
+segurança se vier **junto** com a verificação de contexto nas funções.
+
+**Decisão de 31/08: fica como está por ora**, registrado e não escondido. O consumidor hoje
+é um só (o sistema de TCC), e o token de administrador é a fronteira de fato.
+
+**Planejado, como tarefa própria:** somar `validate_context()` às 14 funções, junto da troca
+do token por conta de serviço. ⚠️ Fazer só nas duas novas foi **descartado** — meio arquivo
+protegido é mais difícil de raciocinar do que a lacuna uniforme de hoje, e ninguém lembra
+qual metade. ⚠️ A mudança altera comportamento para qualquer consumidor com permissões
+restritas, então exige teste e aviso à equipe do TCC antes de subir.
+
 ## Fora de escopo
 
 | item | onde vive |
@@ -341,4 +367,5 @@ Três linhas de log, todas de graça no request que já acontece:
 | Porte do `report_unasus` | `2026-08-30-porte-report-unasus-design.md` |
 | Tabela `tcc_suportes` e policies | `sistema-tcc-r8` (handoff) |
 | Figura do tutor (removida do produto por decisão de 27/08) | #63 |
+| `validate_context()` nas 14 funções + troca do token por conta de serviço | tarefa própria, planejada (ver acima) |
 | Conferência de versões de plugin no servidor da turma | #34 |
