@@ -288,13 +288,17 @@ class local_wstcc_external extends external_api {
                   FROM {user} u
                   LEFT JOIN {user_info_data} ud
                     ON (ud.userid = u.id)
-                   -- ⚠️ IN, e nao =. O core NAO garante unicidade de shortname em
-                   -- user_info_field (a tabela nao declara indice no install.xml),
-                   -- e duas instalacoes reais chegam a dois campos 'cpf': o
-                   -- auth_cas_ufsc cria o dele na instalacao, e restaurar dump ou
-                   -- criar pela interface produz o segundo. Com '=', a subconsulta
-                   -- devolvia duas linhas e o MySQL derrubava a chamada inteira --
-                   -- levando junto o SyncPerson do sistema de TCC.
+                   -- ⚠️ IN, e nao =. Com '=', a subconsulta devolvia duas linhas se
+                   -- houvesse dois campos com shortname 'cpf', e o MySQL derrubava a
+                   -- chamada INTEIRA -- levando junto o SyncPerson do sistema de TCC.
+                   --
+                   -- Isso e' blindagem, nao conserto de defeito ativo: medido em
+                   -- 31/08, local e producao tem UM campo cada. E o estado duplicado
+                   -- e' improvavel -- a tela de campos de perfil valida a unicidade
+                   -- (user/profile/definelib.php:141) e o auth_cas_ufsc e' idempotente.
+                   -- Mas a validacao vive no FORMULARIO: user_info_field nao tem
+                   -- indice unico, entao INSERT direto, restauracao de dump ou um
+                   -- plugin menos cuidadoso ainda produzem o estado que derrubava tudo.
                    AND (ud.fieldid IN (SELECT uif.id
                                          FROM {user_info_field} uif
                                         WHERE uif.shortname = 'cpf'
@@ -1057,6 +1061,8 @@ class local_wstcc_external extends external_api {
         }
         $linhas->close();
 
+        self::avisar_suportes_sem_papel($grupos, $params['courseid']);
+
         return array('grupos' => array_values($grupos));
     }
 
@@ -1103,6 +1109,57 @@ class local_wstcc_external extends external_api {
 
         return $DB->get_records_sql($sql,
                 array_merge($inparams, array('relationshipid' => $relationshipid)));
+    }
+
+    /**
+     * Loga quem e' suporte no GRUPO mas nao tem o papel no CURSO.
+     *
+     * A identidade vem do papel (a A1 so' olha role_assignments); o alcance vem
+     * do grupo. Quem esta no grupo sem o papel nao e' reconhecido e cai na tela
+     * de aluno, sem erro nenhum -- este aviso e' o que transforma isso numa linha
+     * em vez de uma investigacao. Sai de graca: os dois conjuntos ja' estao em
+     * maos neste request.
+     *
+     * ⚠️ debugging() nao aparece em producao (ver a licao no locallib.php). O
+     * estado consultavel a qualquer momento e' o check \local_wstcc\check\papeis;
+     * este aviso serve a quem desenvolve e a quem roda a suite.
+     */
+    protected static function avisar_suportes_sem_papel($grupos, $courseid) {
+        global $CFG, $DB;
+        require_once($CFG->dirroot . '/local/wstcc/locallib.php');
+
+        $userids = array();
+        foreach ($grupos as $grupo) {
+            foreach ($grupo['suportes'] as $membro) {
+                $userids[$membro['userid']] = true;
+            }
+        }
+        if (empty($userids)) {
+            return;
+        }
+
+        $shortnames = local_wstcc_papeis_configurados('local_wstcc_suporte_roles', 'suporteorientacao');
+        $context = context_course::instance($courseid);
+
+        list($usersql, $userparams) = $DB->get_in_or_equal(array_keys($userids), SQL_PARAMS_NAMED, 'userid');
+        list($rolesql, $roleparams) = $DB->get_in_or_equal($shortnames, SQL_PARAMS_NAMED, 'shortname');
+
+        $sql = "SELECT DISTINCT ra.userid
+                  FROM {role_assignments} ra
+                  JOIN {role} r ON (r.id = ra.roleid)
+                 WHERE ra.contextid = :contextid
+                   AND ra.userid {$usersql}
+                   AND r.shortname {$rolesql}";
+
+        $compapel = $DB->get_records_sql($sql,
+                array_merge($userparams, $roleparams, array('contextid' => $context->id)));
+
+        $sempapel = array_diff(array_keys($userids), array_keys($compapel));
+        if (!empty($sempapel)) {
+            debugging("local_wstcc: usuarios " . implode(',', $sempapel) . " sao suporte em grupo "
+                    . "de orientacao do curso {$courseid} mas NAO tem o papel de suporte no curso. "
+                    . "A ferramenta de TCC nao os reconhecera.", DEBUG_DEVELOPER);
+        }
     }
 
     public static function get_grupos_orientacao_returns() {

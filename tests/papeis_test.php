@@ -280,6 +280,10 @@ class local_wstcc_papeis_testcase extends advanced_testcase {
         $this->assertNotContains($t['users']['suporte_b']->id, $this->ids($a, 'suportes'));
         $this->assertEquals(array($t['users']['suporte_b']->id), $this->ids($b, 'suportes'));
         $this->assertEquals(array($t['users']['estudante_b']->id), $this->ids($b, 'estudantes'));
+
+        // Cadastro coerente nao produz aviso: aviso que sempre aparece deixa de
+        // ser lido, e passa a esconder o aviso de verdade.
+        $this->assertDebuggingNotCalled();
     }
 
     public function test_a2_curso_sem_turma_levanta_excecao_propria() {
@@ -370,5 +374,25 @@ class local_wstcc_papeis_testcase extends advanced_testcase {
 
         // Vazio LITERAL: "esta turma nao tem grupos". Nao e' erro.
         $this->assertEquals(array(), $retorno['grupos']);
+    }
+
+    public function test_a2_avisa_quando_o_suporte_do_grupo_nao_tem_papel_no_curso() {
+        global $DB;
+
+        $this->resetAfterTest();
+
+        $t = $this->montar_turma();
+
+        // Tira o papel do suporte_b no curso, mantendo-o no grupo. E' o
+        // desencontro "grupo sem papel": a A1 nao o reconhece, ele cai na tela
+        // de aluno em silencio -- e sem este log ninguem descobre por que.
+        $ctx = context_course::instance($t['courseid'])->id;
+        $roleid = $DB->get_field('role', 'id',
+                array('shortname' => 'suporteorientacao'), MUST_EXIST);
+        role_unassign($roleid, $t['users']['suporte_b']->id, $ctx);
+
+        local_wstcc_external::get_grupos_orientacao($t['courseid']);
+
+        $this->assertDebuggingCalled();
     }
 }
