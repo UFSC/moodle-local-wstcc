@@ -288,9 +288,16 @@ class local_wstcc_external extends external_api {
                   FROM {user} u
                   LEFT JOIN {user_info_data} ud
                     ON (ud.userid = u.id)
-                   AND (ud.fieldid = (SELECT uif.id
-                                        FROM {user_info_field} uif
-                                       WHERE uif.shortname = 'cpf'
+                   -- ⚠️ IN, e nao =. O core NAO garante unicidade de shortname em
+                   -- user_info_field (a tabela nao declara indice no install.xml),
+                   -- e duas instalacoes reais chegam a dois campos 'cpf': o
+                   -- auth_cas_ufsc cria o dele na instalacao, e restaurar dump ou
+                   -- criar pela interface produz o segundo. Com '=', a subconsulta
+                   -- devolvia duas linhas e o MySQL derrubava a chamada inteira --
+                   -- levando junto o SyncPerson do sistema de TCC.
+                   AND (ud.fieldid IN (SELECT uif.id
+                                         FROM {user_info_field} uif
+                                        WHERE uif.shortname = 'cpf'
                                       )
                         )
                  WHERE ( $field = :values ) 
