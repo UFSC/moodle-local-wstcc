@@ -1003,10 +1003,10 @@ class local_wstcc_external extends external_api {
      * orientador; perguntar o suporte por aluno dobraria o custo do sync. Como o
      * suporte e' do GRUPO, uma chamada devolve tudo e o app distribui.
      *
-     * ⚠️ NAO reusa get_grupos_orientacao_by_userid(): o ramo com lista chama
-     * report_unasus_int_array_to_sql(), do report_unasus, que nao esta instalado
-     * nesta arvore -- e o plugin nem carrega no 4.5 (ver o design do porte). Aqui
-     * o IN sai do get_in_or_equal, padrao do proprio lib.php.
+     * ⚠️ Does NOT reuse get_grupos_orientacao_by_userid(): that one answers which groups
+     * a user is in, and with a user filter it now also matches orientation support
+     * members (report_unasus#20). Here every group of the class is listed with all of
+     * its members labelled by role, which one query over relationship_members gives.
      */
     public static function get_grupos_orientacao($courseid) {
         global $CFG, $DB;

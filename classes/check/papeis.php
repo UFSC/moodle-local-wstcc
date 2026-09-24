@@ -75,6 +75,7 @@ class papeis extends check {
         $linhas = array();
         $usandodefault = array();
         $semkpapel = array();
+        $shortnamesporsemantico = [];
 
         foreach ($fontes as $semantico => $fonte) {
             list($nomeconfig, $default) = $fonte;
@@ -88,6 +89,7 @@ class papeis extends check {
             // Le pela MESMA rotina que o web service usa: se as duas divergirem,
             // o check passa a descrever um mapa que nao e' o aplicado.
             $shortnames = local_wstcc_papeis_configurados($nomeconfig, $default);
+            $shortnamesporsemantico[$semantico] = $shortnames;
 
             list($in, $params) = $DB->get_in_or_equal($shortnames);
             $existentes = $DB->get_fieldset_select('role', 'shortname', "shortname {$in}", $params);
@@ -112,6 +114,28 @@ class papeis extends check {
             return new result(result::WARNING,
                     get_string('checkpapeis_semrole', 'local_wstcc', s(implode(', ', $semkpapel))),
                     $detalhe);
+        }
+
+        // Support roles whose definition lacks the capability of the TCC reports (report_unasus#20).
+        // Only the system-level role definition is read; a category override is not considered.
+        $suportesemcap = [];
+        if (get_capability_info('report/unasus:view_orientacao')) {
+            [$in, $params] = $DB->get_in_or_equal($shortnamesporsemantico['suporte_orientacao']);
+            $syscontext = \context_system::instance();
+            foreach ($DB->get_records_select('role', "shortname {$in}", $params) as $role) {
+                $caps = role_context_capabilities($role->id, $syscontext, 'report/unasus:view_orientacao');
+                if (($caps['report/unasus:view_orientacao'] ?? null) != CAP_ALLOW) {
+                    $suportesemcap[] = $role->shortname;
+                }
+            }
+        }
+
+        if (!empty($suportesemcap)) {
+            return new result(
+                result::WARNING,
+                get_string('checkpapeis_suportesemcap', 'local_wstcc', s(implode(', ', $suportesemcap))),
+                $detalhe
+            );
         }
 
         if (!empty($usandodefault)) {

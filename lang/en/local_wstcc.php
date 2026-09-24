@@ -37,3 +37,4 @@ $string['checkpapeis_default'] = 'valor padrão (configuração em branco)';
 $string['checkpapeis_ausente'] = 'papel inexistente nesta instalação: {$a}';
 $string['checkpapeis_usandodefault'] = 'Usando o valor padrão para: {$a}. Funciona, mas o mapa não foi configurado explicitamente.';
 $string['checkpapeis_semrole'] = 'Nenhum papel existente responde por: {$a}. Ninguém será reconhecido nesse papel pela ferramenta de TCC.';
+$string['checkpapeis_suportesemcap'] = 'Papéis de Suporte de Orientação sem a permissão report/unasus:view_orientacao na definição do papel: {$a}. Quem tiver só esse papel não conseguirá abrir os relatórios de TCC.';
